@@ -1,0 +1,85 @@
+# ============================================================
+# .gitignore - 反无人机决策Agent系统
+# ============================================================
+
+# ---- Java ----
+*.class
+*.jar
+*.war
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+venv/
+.venv/
+
+# ---- IDE ----
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# ---- OS ----
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- 模型文件 (太大，不提交到Git) ----
+llm-agent/models/*.gguf
+llm-agent/models/bge-small-zh/
+
+# ---- 数据 ----
+*.db
+*.sqlite
+data/
+mysql_data/
+es_data/
+
+# ---- 日志 ----
+logs/
+*.log
+
+# ---- 环境变量 ----
+.env
+.env.local
+.env.production
+
+# ---- Docker ----
+docker-compose.override.yml
+
+# ---- 临时文件 ----
+tmp/
+temp/
+*.tmp
+*.bak
+*.orig
+
+# ---- 测试产物 ----
+test-results/
+coverage/
+.pytest_cache/
+.mypy_cache/
+
+# ---- FAISS索引 ----
+knowledge-base/faiss_index/*.index
+!knowledge-base/faiss_index/.gitkeep
+
+# ---- 敏感文件 ----
+*.pem
+*.key
+*.crt
+nginx-ssl/

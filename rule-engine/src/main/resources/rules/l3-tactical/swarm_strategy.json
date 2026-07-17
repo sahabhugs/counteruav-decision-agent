@@ -1,0 +1,104 @@
+[
+  {
+    "rule_id": "L3-S001",
+    "name": "小型消费级蜂群应对",
+    "condition": {
+      "swarm_size_range": [3, 20],
+      "drone_category": "consumer_quadcopter",
+      "formation_type": ["distributed", "line"]
+    },
+    "action": {
+      "primary": "FULL_BAND_JAMMING",
+      "secondary": "GNSS_SPOOFING",
+      "avoid": ["single_target_jamming"],
+      "params": {
+        "jamming_mode": "full_spectrum",
+        "power_percent": 100,
+        "coverage_angle": 360,
+        "gnss_spoofing": "area_denial"
+      },
+      "reason": "消费级蜂群依赖GPS和遥控信号，全频段干扰+区域GNSS拒止可有效破坏蜂群协同"
+    }
+  },
+  {
+    "rule_id": "L3-S002",
+    "name": "FPV蜂群应对",
+    "condition": {
+      "swarm_size_range": [3, 15],
+      "drone_category": "diy_fpv",
+      "formation_type": ["distributed", "swarm"]
+    },
+    "action": {
+      "primary": "FULL_BAND_JAMMING",
+      "secondary": "HPM_PULSE",
+      "avoid": ["LASER_DESTRUCTION"],
+      "params": {
+        "jamming_bands": ["5.8GHz", "2.4GHz", "900MHz"],
+        "hpm_mode": "wide_area_pulse",
+        "power_percent": 100
+      },
+      "reason": "FPV蜂群反应速度快、机动性强，需全频段覆盖+高功率微波区域压制"
+    }
+  },
+  {
+    "rule_id": "L3-S003",
+    "name": "大型无人机蜂群应对",
+    "condition": {
+      "swarm_size_range": [5, 50],
+      "drone_category": "military_fixed_wing",
+      "formation_type": ["formation", "distributed"]
+    },
+    "action": {
+      "primary": "HPM_PULSE",
+      "secondary": "KINETIC_INTERCEPT",
+      "avoid": ["RF_JAMMING"],
+      "params": {
+        "hpm_mode": "directional_beam",
+        "target_priority": "command_node",
+        "engagement_sequence": "command_first_then_followers"
+      },
+      "reason": "军用蜂群可能有抗干扰能力，优先使用高功率微波打击指挥节点"
+    }
+  },
+  {
+    "rule_id": "L3-S004",
+    "name": "混合蜂群应对",
+    "condition": {
+      "swarm_size_range": [5, 30],
+      "drone_category": "mixed",
+      "formation_type": ["any"]
+    },
+    "action": {
+      "primary": "FULL_BAND_JAMMING",
+      "secondary": "LASER_DESTRUCTION",
+      "avoid": [],
+      "params": {
+        "jamming_mode": "adaptive_multi_band",
+        "laser_targeting": "largest_threat_first",
+        "coordination": "jammer_laser_pairing"
+      },
+      "reason": "混合蜂群组成复杂，自适应多频段干扰+激光分层拦截"
+    }
+  },
+  {
+    "rule_id": "L3-S005",
+    "name": "饱和攻击蜂群应对",
+    "condition": {
+      "swarm_size_range": [20, 999],
+      "drone_category": "any",
+      "formation_type": ["wave", "saturation"]
+    },
+    "action": {
+      "primary": "HPM_PULSE",
+      "secondary": "FULL_BAND_JAMMING",
+      "avoid": [],
+      "params": {
+        "hpm_mode": "pulse_train",
+        "pulse_rate": "maximum",
+        "all_available_jammers": true,
+        "civilian_evacuation_required": true
+      },
+      "reason": "饱和攻击需最大化区域拒止能力，全资源投入，需考虑民用安全疏散"
+    }
+  }
+]

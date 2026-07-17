@@ -1,0 +1,196 @@
+version: '3.8'
+
+# ============================================================
+# 反无人机决策Agent系统 - Docker Compose编排
+# ============================================================
+
+services:
+  # ==========================================
+  # MySQL 数据库
+  # ==========================================
+  mysql:
+    image: mysql:8.0
+    container_name: counteruav-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-CounterUAV@2026}
+      MYSQL_DATABASE: counteruav_db
+      MYSQL_USER: counteruav
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-cuav_decision_2026}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./sql/001_init_schema.sql:/docker-entrypoint-initdb.d/001_init_schema.sql
+      - ./sql/002_seed_data.sql:/docker-entrypoint-initdb.d/002_seed_data.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "counteruav", "-p$$MYSQL_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - cuav-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  # ==========================================
+  # Elasticsearch (规则全文检索)
+  # ==========================================
+  elasticsearch:
+    image: elasticsearch:8.11.0
+    container_name: counteruav-es
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cuav-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "30m"
+        max-file: "3"
+
+  # ==========================================
+  # Java规则引擎服务
+  # ==========================================
+  rule-engine:
+    build:
+      context: ./rule-engine
+      dockerfile: Dockerfile
+    image: counteruav/rule-engine:latest
+    container_name: counteruav-rule-engine
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/counteruav_db?useUnicode=true&characterEncoding=utf8mb4&serverTimezone=Asia/Shanghai
+      - SPRING_DATASOURCE_USERNAME=counteruav
+      - SPRING_DATASOURCE_PASSWORD=${MYSQL_PASSWORD:-cuav_decision_2026}
+      - LLM_AGENT_URL=http://llm-agent:8001
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - JAVA_OPTS=-Xms512m -Xmx1024m
+    volumes:
+      - ./rule-engine/src/main/resources/rules:/app/rules:ro
+      - rule_engine_logs:/app/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    networks:
+      - cuav-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ==========================================
+  # Python LLM Agent服务
+  # ==========================================
+  llm-agent:
+    build:
+      context: ./llm-agent
+      dockerfile: Dockerfile
+    image: counteruav/llm-agent:latest
+    container_name: counteruav-llm-agent
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      - MODEL_PATH=/app/models/qwen3-8b-q4_k_m.gguf
+      - EMBEDDING_MODEL=/app/models/bge-small-zh
+      - RULE_ENGINE_URL=http://rule-engine:8080
+      - CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-}
+      - N_THREADS=${LLM_N_THREADS:-8}
+    volumes:
+      - ./llm-agent/models:/app/models:ro
+      - ./knowledge-base:/app/knowledge-base:ro
+      - llm_agent_logs:/app/logs
+    depends_on:
+      rule-engine:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/api/llm/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    networks:
+      - cuav-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+    # GPU支持 (可选)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # ==========================================
+  # Nginx 反向代理 (可选，生产环境推荐)
+  # ==========================================
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: counteruav-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx-ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - rule-engine
+      - llm-agent
+    networks:
+      - cuav-network
+    profiles:
+      - production
+
+# ==========================================
+# 数据卷
+# ==========================================
+volumes:
+  mysql_data:
+    driver: local
+  es_data:
+    driver: local
+  rule_engine_logs:
+    driver: local
+  llm_agent_logs:
+    driver: local
+
+# ==========================================
+# 网络
+# ==========================================
+networks:
+  cuav-network:
+    driver: bridge
+    name: cuav-network

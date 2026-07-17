@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kmodule xmlns="http://www.drools.org/xsd/kmodule"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://www.drools.org/xsd/kmodule http://www.drools.org/xsd/kmodule_6_0.xsd">
+
+    <!--
+        反无人机规则引擎 KIE 模块配置
+        四级规则管道：
+          L1 - 物理层：目标运动学特征、RCS、信号参数等底层判断
+          L2 - 条令层：作战条令、交火规则、空域管理策略
+          L3 - 战术层：多目标协同、资源分配、威胁优先级
+          L4 - 学习层：历史数据驱动的动态规则调整
+    -->
+
+    <!-- ============================================================ -->
+    <!-- L1 物理层规则库 - 无状态会话（高频快速匹配）                 -->
+    <!-- ============================================================ -->
+    <kbase name="L1ThreatBase"
+           packages="rules.l1_physics"
+           default="true">
+        <ksession name="L1StatelessSession"
+                  type="stateless"
+                  default="true"/>
+    </kbase>
+
+    <!-- ============================================================ -->
+    <!-- L2 条令层规则库 - 有状态会话（需要上下文累积）               -->
+    <!-- ============================================================ -->
+    <kbase name="L2DoctrineBase"
+           packages="rules.l2_doctrine"> 
+        <ksession name="L2StatefulSession"
+                  type="stateful"/>
+    </kbase>
+
+    <!-- ============================================================ -->
+    <!-- L3 战术层规则库 - 有状态会话（多目标协同推理）               -->
+    <!-- ============================================================ -->
+    <kbase name="L3TacticalBase"
+           packages="rules.l3_tactical">
+        <ksession name="L3StatefulSession"
+                  type="stateful"/>
+    </kbase>
+
+    <!-- ============================================================ -->
+    <!-- L4 学习层规则库 - 有状态会话（历史数据驱动的动态规则）       -->
+    <!-- ============================================================ -->
+    <kbase name="L4LearningBase"
+           packages="rules.l4_learning">
+        <ksession name="L4StatefulSession"
+                  type="stateful"/>
+    </kbase>
+
+</kmodule>

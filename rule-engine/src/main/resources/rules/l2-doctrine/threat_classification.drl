@@ -1,0 +1,126 @@
+package rules.l2_doctrine;
+
+import com.counteruav.model.*;
+import com.counteruav.model.Target.*;
+import java.util.List;
+import java.util.ArrayList;
+
+// 使用Haversine公式计算距离的辅助函数
+function double distance(LatLonAlt p1, LatLonAlt p2) {
+    double R = 6371000; // 地球半径(m)
+    double dLat = Math.toRadians(p2.getLat() - p1.getLat());
+    double dLon = Math.toRadians(p2.getLon() - p1.getLon());
+    double a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+               Math.cos(Math.toRadians(p1.getLat())) * Math.cos(Math.toRadians(p2.getLat())) *
+               Math.sin(dLon/2) * Math.sin(dLon/2);
+    double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+}
+
+// ===== L2层威胁分类规则 =====
+
+rule "L2-001: 近距离快速抵近目标"  // 规则名称（唯一标识）
+agenda-group "threat-classification"   // ★ 指定属于哪个议程组
+salience 100   // 优先级（数值越大越先执行）
+when  // 规则条件（满足才会执行）
+    $t : Target(radialSpeedMs > 15)  // 条件1: 目标径向速度 > 15m/s
+    $req : DecisionRequest()   // 条件2: 存在决策请求
+    eval(distance($t.getPosition(), $req.getDefenseCenter()) < 500) // 条件3: 距离防御中心 < 500m
+then  // 规则动作（条件满足时执行）
+    $t.setThreatLevel(ThreatLevel.CRITICAL);  // 设置威胁等级为"极危"
+    $t.setThreatScore(95.0);  // 设置威胁分数为95
+    $t.setEscalationReason("近距离(<500m)快速抵近目标，径向速度" + $t.getRadialSpeedMs() + "m/s"); // 设置升级原因
+    addMatchedRule($t, "L2-001");  // ★ 将规则ID添加到目标的matchedRules列表
+end
+
+rule "L2-002: 近距离民用/未知无人机"
+agenda-group "threat-classification"
+salience 90
+when
+    $t : Target(droneCategory in (DroneCategory.CONSUMER_QUADCOPTER, DroneCategory.UNKNOWN))
+    $req : DecisionRequest()
+    eval(distance($t.getPosition(), $req.getDefenseCenter()) < 1000)
+then
+    $t.setThreatLevel(ThreatLevel.HIGH);
+    $t.setThreatScore(72.0);
+    $t.setEscalationReason("近距民用/未知无人机(<1000m)");
+    addMatchedRule($t, "L2-002");
+end
+
+rule "L2-003: 军用固定翼逼近"
+agenda-group "threat-classification"
+salience 90
+when
+    $t : Target(droneCategory == DroneCategory.MILITARY_FIXED_WING)
+    $req : DecisionRequest()
+    eval(distance($t.getPosition(), $req.getDefenseCenter()) < 3000)
+then
+    $t.setThreatLevel(ThreatLevel.HIGH);
+    $t.setThreatScore(78.0);
+    $t.setEscalationReason("军用固定翼无人机逼近防御区域");
+    addMatchedRule($t, "L2-003");
+end
+
+rule "L2-004: 集群蜂群威胁"
+agenda-group "threat-classification"
+salience 95
+when
+    $t : Target(droneCategory == DroneCategory.CLUSTER_SWARM)
+    $req : DecisionRequest()
+    eval(distance($t.getPosition(), $req.getDefenseCenter()) < 5000)
+then
+    $t.setThreatLevel(ThreatLevel.HIGH);
+    $t.setThreatScore(82.0);
+    $t.setEscalationReason("集群蜂群威胁，距防御中心" + (int)distance($t.getPosition(), $req.getDefenseCenter()) + "m");
+    addMatchedRule($t, "L2-004");
+end
+
+rule "L2-005: 远距离低速目标"
+agenda-group "threat-classification"
+salience 10
+when
+    $t : Target(velocityMs < 5)
+    $req : DecisionRequest()
+    eval(distance($t.getPosition(), $req.getDefenseCenter()) > 5000)
+then
+    $t.setThreatLevel(ThreatLevel.LOW);
+    $t.setThreatScore(10.0);
+    $t.setEscalationReason("远程低速目标，暂时低威胁");
+    addMatchedRule($t, "L2-005");
+end
+
+rule "L2-006: 长时间驻留威胁升级"
+agenda-group "threat-classification"
+salience 50
+when
+    $t : Target(dwellTimeS > 300, threatLevel != null)
+    $req : DecisionRequest()
+    eval(distance($t.getPosition(), $req.getDefenseCenter()) < 3000)
+then
+    int currentLevel = $t.getThreatLevel().getLevel();
+    if (currentLevel < 5) {
+        $t.setThreatLevel(ThreatLevel.fromLevel(currentLevel + 1));
+        $t.setThreatScore(Math.min(100, $t.getThreatScore() + 15));
+        $t.setEscalationReason("目标驻留超过300秒，接近防御区域，威胁升级");
+    }
+    addMatchedRule($t, "L2-006");
+end
+
+rule "L2-007: 民用区高空威胁ROE审查标记"
+agenda-group "threat-classification"
+salience 80
+when
+    $t : Target(overCivilianArea == true, threatLevel != null, threatLevel.getLevel() >= 4)
+then
+    String reason = $t.getEscalationReason();
+    $t.setEscalationReason((reason != null ? reason + "；" : "") + "民用区域上空高危目标，需ROE审查");
+    addMatchedRule($t, "L2-007");
+end
+
+// 辅助函数：添加匹配规则到目标
+function void addMatchedRule(Target t, String ruleId) {
+    if (t.getMatchedRules() == null) {
+        t.setMatchedRules(new ArrayList<String>());
+    }
+    t.getMatchedRules().add(ruleId);
+}

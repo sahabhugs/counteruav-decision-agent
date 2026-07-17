@@ -1,0 +1,437 @@
+[
+  {
+    "scenario_id": "sc-001",
+    "name": "单机侦察入侵",
+    "name_en": "Single Drone Reconnaissance Intrusion",
+    "description": "单架消费级无人机从远距离缓慢接近防御区域，执行侦察和情报搜集任务。典型场景为敌方使用DJI Mavic 3或类似平台，在2-3km外起飞，以中低高度（100-300m）逐渐接近目标，利用机载相机进行持续监视和情报收集。飞行轨迹平稳、可预测，但可能利用地形遮蔽降低探测概率。无人机可能在前沿悬停观察后撤离，不进入核心区域。",
+    "target_profile": {
+      "count": 1,
+      "type": "consumer_quadcopter",
+      "speed_range_ms": [8, 20],
+      "altitude_range_m": [80, 400],
+      "approach_pattern": "gradual",
+      "dwell_expected": true
+    },
+    "threat_assessment_template": {
+      "initial_level": 2,
+      "escalation_triggers": ["接近至1km内", "悬停持续超过3分钟", "探测到视频下传信号增强", "无人机航向对准敏感设施"],
+      "max_expected_level": 3
+    },
+    "recommended_strategy": {
+      "primary": "rf_jamming_2.4g_5.8g",
+      "secondary": "gnss_spoofing",
+      "avoid": ["kinetic_intercept", "laser_destruction"],
+      "engagement_distance_m": 1500,
+      "reasoning": "消费级侦察无人机主要依赖实时视频下传，优先使用RF干扰阻断其C2和视频链路迫使其返航。在1500m距离实施干扰可有效防止其获取高清情报，同时保留GPS欺骗作为备份方案。避免使用动能拦截以免造成附带损伤和不必要的政治影响。"
+    },
+    "historical_success_rate": null,
+    "source": "GENERATED_TEMPLATE",
+    "created": "2026-07-13"
+  },
+  {
+    "scenario_id": "sc-002",
+    "name": "单机高速突袭",
+    "name_en": "Single High-Speed Strike Drone",
+    "description": "单架高速FPV穿越机或军用无人机以最大速度直扑目标，执行快速打击或自杀式攻击任务。典型目标为DIY 5寸FPV携带爆炸物，或定制单向攻击无人机。无人机从3-5km外发射后，低空高速（>35m/s）飞行，利用地形和地面杂波规避雷达探测。飞行轨迹多变、不可预测，留给防御系统的反应时间极短（通常<60秒）。",
+    "target_profile": {
+      "count": 1,
+      "type": "diy_fpv",
+      "speed_range_ms": [25, 50],
+      "altitude_range_m": [10, 200],
+      "approach_pattern": "high_speed",
+      "dwell_expected": false
+    },
+    "threat_assessment_template": {
+      "initial_level": 4,
+      "escalation_triggers": ["探测到高速目标", "飞行方向直指关键资产", "无视频回传信号（被动制导）", "RSSI信号快速增强"],
+      "max_expected_level": 5
+    },
+    "recommended_strategy": {
+      "primary": "kinetic_intercept",
+      "secondary": "rf_jamming_5.8g_900mhz",
+      "avoid": ["gnss_spoofing"],
+      "engagement_distance_m": 800,
+      "reasoning": "高速攻击无人机反应窗口极短，GPS欺骗对预编程终端制导无效。优先使用近防武器系统或拦截网进行动能拦截。同时使用定向RF干扰破坏其手动控制和视频链路。必须在800m外完成拦截以确保安全距离。GNSS欺骗对该类目标效果有限，不建议作为主要手段。"
+    },
+    "historical_success_rate": null,
+    "source": "GENERATED_TEMPLATE",
+    "created": "2026-07-13"
+  },
+  {
+    "scenario_id": "sc-003",
+    "name": "集群蜂群攻击",
+    "name_en": "Drone Swarm Coordinated Attack",
+    "description": "5至10架自主化无人机组成的蜂群，从多个方向同时发起协同攻击。蜂群中可能包含混合类型无人机：部分为侦察/诱饵机型，部分携带战斗部。无人机之间通过Mesh网络通信协调行动，具备分布式决策能力。蜂群可能采用饱和攻击策略，使防御系统通道饱和。单架拦截无法有效应对蜂群，需要多层次、多手段的综合防御体系。",
+    "target_profile": {
+      "count": 7,
+      "type": "autonomous_swarm",
+      "speed_range_ms": [15, 50],
+      "altitude_range_m": [20, 500],
+      "approach_pattern": "swarm",
+      "dwell_expected": false
+    },
+    "threat_assessment_template": {
+      "initial_level": 5,
+      "escalation_triggers": ["探测到Mesh网络通信信号", "蜂群分散包围防御区域", "部分无人机进入终端制导阶段", "诱饵机与攻击机分离"],
+      "max_expected_level": 5
+    },
+    "recommended_strategy": {
+      "primary": "high_power_microwave",
+      "secondary": "rf_jamming_wideband",
+      "avoid": ["single_target_kinetic", "laser_destruction"],
+      "engagement_distance_m": 2000,
+      "reasoning": "蜂群攻击需要区域效应武器进行面杀伤。高功率微波武器可同时瘫痪多架无人机的电子系统。宽带RF干扰可破坏蜂群Mesh通信网络，瓦解其协同能力。单点动能拦截无法应对饱和攻击，应避免使用。必须在2km外建立防御圈，为分层拦截争取时间。"
+    },
+    "historical_success_rate": null,
+    "source": "GENERATED_TEMPLATE",
+    "created": "2026-07-13"
+  },
+  {
+    "scenario_id": "sc-004",
+    "name": "要地防卫-夜间",
+    "name_en": "Critical Asset Defense - Nighttime",
+    "description": "夜间低照度条件下的要地/关键基础设施防卫。黑暗环境降低了光学探测和识别能力，但无人机可借助热成像和微光设备进行有效侦察。夜间通常是无人机入侵的高发时段，操作者利用黑暗掩护接近目标。需要依赖雷达、RF探测和红外/热成像等多传感器融合来弥补视觉短板。防御系统需考虑夜间人员疲劳和响应延迟因素。",
+    "target_profile": {
+      "count": 2,
+      "type": "military_quadcopter",
+      "speed_range_ms": [8, 23],
+      "altitude_range_m": [50, 400],
+      "approach_pattern": "gradual",
+      "dwell_expected": true
+    },
+    "threat_assessment_template": {
+      "initial_level": 3,
+      "escalation_triggers": ["热成像确认有效载荷", "无人机进入禁飞区核心", "识别为已知军用平台", "RSSI信号持续增强>30秒"],
+      "max_expected_level": 4
+    },
+    "recommended_strategy": {
+      "primary": "rf_jamming_2.4g_5.8g",
+      "secondary": "laser_destruction",
+      "avoid": ["kinetic_intercept"],
+      "engagement_distance_m": 2000,
+      "reasoning": "夜间环境适合使用RF干扰作为首选，因为无人机高度依赖通信和导航信号。激光武器在夜间大气稳定度更好、热晕效应较弱，可作为备份硬杀伤手段。应避免动能拦截以防止夜间识别错误导致的误击。红外/热成像传感器需作为主要探测手段。"
+    },
+    "historical_success_rate": null,
+    "source": "GENERATED_TEMPLATE",
+    "created": "2026-07-13"
+  },
+  {
+    "scenario_id": "sc-005",
+    "name": "民用机场附近",
+    "name_en": "Civilian Airport Proximity",
+    "description": "在民用机场周边空域发现无人机入侵，需要在不影响民航通信导航和飞行安全的前提下进行反制。机场周边电磁环境复杂，存在大量合法RF信号（ILS、VOR、DME、ATC通信、雷达等）。使用大功率RF干扰可能导致导航设备失效或通信中断，造成严重航空安全隐患。此外，动能拦截在民航区域风险极高。需要高度精准、低附带影响的定向干扰方案。",
+    "target_profile": {
+      "count": 1,
+      "type": "consumer_quadcopter",
+      "speed_range_ms": [5, 18],
+      "altitude_range_m": [30, 500],
+      "approach_pattern": "random",
+      "dwell_expected": true
+    },
+    "threat_assessment_template": {
+      "initial_level": 3,
+      "escalation_triggers": ["无人机进入进近/起飞航路", "无人机接近跑道中心线", "滞空时间超过10分钟", "无人机靠近航站楼"],
+      "max_expected_level": 4
+    },
+    "recommended_strategy": {
+      "primary": "net_gun_capture",
+      "secondary": "protocol_hijack_dji_aeroscope",
+      "avoid": ["rf_jamming_broadband", "kinetic_intercept", "laser_destruction"],
+      "engagement_distance_m": 500,
+      "reasoning": "机场环境严格限制大功率RF干扰，必须使用净网捕获或协议劫持等无电磁干扰方案。DJI Aeroscope等协议识别系统可精确定位操作者位置。净网枪在500m内精确捕获，不会产生电磁干扰。严禁使用宽带干扰和高能激光，防止对民航飞行安全造成影响。"
+    },
+    "historical_success_rate": null,
+    "source": "GENERATED_TEMPLATE",
+    "created": "2026-07-13"
+  },
+  {
+    "scenario_id": "sc-006",
+    "name": "边境线越境",
+    "name_en": "Border Crossing Intrusion",
+    "description": "无人机从境外起飞穿越边境线，执行走私、侦察或渗透任务。通常使用长航时固定翼无人机（如Orlan-10级别）或7寸远航FPV。无人机起飞点位于境外，反制行动受到国际法和交战规则的限制。无人机可能在高空（>2000m）回避地面火力，或超低空（<50m）利用地形遮蔽雷达。飞行距离可能超过100km，对探测和跟踪范围提出较高要求。",
+    "target_profile": {
+      "count": 1,
+      "type": "military_fixed_wing",
+      "speed_range_ms": [15, 40],
+      "altitude_range_m": [200, 3000],
+      "approach_pattern": "loitering",
+      "dwell_expected": true
+    },
+    "threat_assessment_template": {
+      "initial_level": 3,
+      "escalation_triggers": ["无人机越境确认", "进入领空纵深>5km", "探测到情报下传信号", "无人机航向改变指向军事设施"],
+      "max_expected_level": 4
+    },
+    "recommended_strategy": {
+      "primary": "ew_suite_intercept",
+      "secondary": "kinetic_intercept",
+      "avoid": ["rf_jamming_consumer"],
+      "engagement_distance_m": 5000,
+      "reasoning": "远距离越境无人机需要使用电子战系统进行综合对抗，包括通信侦察、信号分析和定向干扰。军用级无人机对民用干扰设备具有较强抵抗力，需使用军用级电子对抗手段。动能拦截仅在确认进入领空且无其他选择时使用。在5km以上距离建立探测和识别能力至关重要。"
+    },
+    "historical_success_rate": null,
+    "source": "GENERATED_TEMPLATE",
+    "created": "2026-07-13"
+  },
+  {
+    "scenario_id": "sc-007",
+    "name": "军事基地侦察",
+    "name_en": "Military Base Reconnaissance",
+    "description": "敌方使用多种类型无人机对军事基地进行多层级侦察。典型模式为：高空固定翼无人机（如Orlan-10）在远距离提供广域监视，中低空多旋翼无人机（如Matrice 300）进行抵近细节侦察，以及小型FPV穿越机渗透基地内部。多平台协同提供多光谱情报（可见光、热成像、电子侦察）。基地防御需要同时应对高空-中空-低空三层威胁，以及固定翼-旋翼-穿越机的混合编队。",
+    "target_profile": {
+      "count": 4,
+      "type": "military_fixed_wing",
+      "speed_range_ms": [10, 40],
+      "altitude_range_m": [50, 5000],
+      "approach_pattern": "multi_axis",
+      "dwell_expected": true
+    },
+    "threat_assessment_template": {
+      "initial_level": 4,
+      "escalation_triggers": ["多类型无人机同时出现", "高空平台持续监视>30分钟", "中低空平台接近至5km内", "探测到电子侦察载荷信号", "FPV穿越机进入基地周边2km"],
+      "max_expected_level": 5
+    },
+    "recommended_strategy": {
+      "primary": "ew_suite_intercept",
+      "secondary": "laser_destruction",
+      "avoid": ["rf_jamming_consumer"],
+      "engagement_distance_m": 8000,
+      "reasoning": "面对多层侦察体系，需要分层防御策略。高空目标使用电子战系统进行通信干扰和欺骗。中低空目标使用激光武器进行硬杀伤。小型FPV目标使用近距Ku波段雷达+净网系统。单一手段无法覆盖所有威胁层次。8km以上的预警范围是必要条件，需部署远程预警雷达。"
+    },
+    "historical_success_rate": null,
+    "source": "GENERATED_TEMPLATE",
+    "created": "2026-07-13"
+  },
+  {
+    "scenario_id": "sc-008",
+    "name": "重要人物保护",
+    "name_en": "VIP Protection Detail",
+    "description": "在重要人物（VIP）出行或公共活动中提供反无人机保护。场景通常位于城市环境，涉及开放空间（广场、体育场、车队路线）。无人机威胁可能包括：侦察型无人机收集VIP位置和安保部署信息、FPV攻击机执行刺杀任务、以及多架无人机协同制造混乱掩护攻击。响应速度至关重要，需要在数秒内完成探测-识别-处置。反击手段需考虑对VIP和公众的安全影响。",
+    "target_profile": {
+      "count": 2,
+      "type": "diy_fpv",
+      "speed_range_ms": [10, 45],
+      "altitude_range_m": [10, 300],
+      "approach_pattern": "high_speed",
+      "dwell_expected": false
+    },
+    "threat_assessment_template": {
+      "initial_level": 4,
+      "escalation_triggers": ["任何不明无人机进入500m保护圈", "高速目标确认", "无人机航向直指VIP位置", "多架无人机同时出现"],
+      "max_expected_level": 5
+    },
+    "recommended_strategy": {
+      "primary": "rf_jamming_wideband",
+      "secondary": "net_gun_capture",
+      "avoid": ["kinetic_intercept", "laser_destruction"],
+      "engagement_distance_m": 400,
+      "reasoning": "VIP保护强调快速响应和安全优先。宽带RF干扰可立即阻断所有无人机通信链路，迫使无人机悬停/降落/返航。净网枪物理捕获适合低空低速目标。严禁在人群中使用动能武器和激光武器，避免对VIP和公众造成伤害。400m保护圈应配置多层探测和干扰节点。"
+    },
+    "historical_success_rate": null,
+    "source": "GENERATED_TEMPLATE",
+    "created": "2026-07-13"
+  },
+  {
+    "scenario_id": "sc-009",
+    "name": "多方向同时入侵",
+    "name_en": "Multi-Axis Simultaneous Intrusion",
+    "description": "3至8架无人机从不同方向（东、南、西、北及中间方向）同时向防御区域发起入侵。每个方向可能使用不同类型和速度的无人机，形成复杂威胁态势。多轴同时入侵的目的是：分散防御注意力、消耗拦截资源、寻找防御薄弱点、以及通过某一方向突破后为其他方向创造机会。雷达和电子战资源面临方向分配困境，需要智能资源调度算法。",
+    "target_profile": {
+      "count": 5,
+      "type": "consumer_quadcopter",
+      "speed_range_ms": [12, 25],
+      "altitude_range_m": [30, 500],
+      "approach_pattern": "multi_axis",
+      "dwell_expected": false
+    },
+    "threat_assessment_template": {
+      "initial_level": 4,
+      "escalation_triggers": ["确认3个以上方向同时有目标", "某个方向出现高速目标", "部分无人机进入2km范围", "传感器资源饱和告警"],
+      "max_expected_level": 5
+    },
+    "recommended_strategy": {
+      "primary": "rf_jamming_wideband_omni",
+      "secondary": "high_power_microwave",
+      "avoid": ["single_direction_jamming", "single_target_kinetic"],
+      "engagement_distance_m": 2500,
+      "reasoning": "多轴入侵需要使用全向宽带干扰或高功率微波武器建立全方位防护罩。单方向定向干扰无法覆盖所有入侵方向。高功率微波的广域效应适合应对多方向威胁。应当避免只对一个方向进行干扰而忽视其他方向。2500m的干扰距离确保所有方向的目标都在有效范围内。"
+    },
+    "historical_success_rate": null,
+    "source": "GENERATED_TEMPLATE",
+    "created": "2026-07-13"
+  },
+  {
+    "scenario_id": "sc-010",
+    "name": "无人机走私",
+    "name_en": "Drone Smuggling Operation",
+    "description": "使用无人机进行跨区域违禁品走私，常见于边境、监狱、检查站等受限区域。走私无人机通常为改装的大载荷平台（如DJI Agras T30级别）或7寸远航FPV，携带毒品、手机、武器等违禁品。飞行通常在夜间或低能见度条件下进行，操作者位于安全距离外。无人机可能采用「空投」模式——飞到指定GPS坐标后自动释放载荷然后返航，全程无需操作者干预。GPS欺骗和RF干扰需精心设计才能在不引爆或丢失载荷的情况下奏效。",
+    "target_profile": {
+      "count": 1,
+      "type": "consumer_quadcopter",
+      "speed_range_ms": [10, 18],
+      "altitude_range_m": [50, 300],
+      "approach_pattern": "gradual",
+      "dwell_expected": false
+    },
+    "threat_assessment_template": {
+      "initial_level": 2,
+      "escalation_triggers": ["确认携带可疑载荷", "无人机进入限制空域", "载荷投放动作被识别", "操作者位置被追溯至已知走私网络"],
+      "max_expected_level": 3
+    },
+    "recommended_strategy": {
+      "primary": "gnss_spoofing",
+      "secondary": "protocol_hijack",
+      "avoid": ["kinetic_intercept", "laser_destruction"],
+      "engagement_distance_m": 1500,
+      "reasoning": "走私无人机通常依赖GPS自动导航，GPS欺骗可引导其降落在指定安全区域以便查获载荷和取证。协议劫持可获取操作者位置信息用于抓捕。应避免动能摧毁以防止载荷散落造成安全隐患（如毒品粉末扩散），以及损失执法证据。"
+    },
+    "historical_success_rate": null,
+    "source": "GENERATED_TEMPLATE",
+    "created": "2026-07-13"
+  },
+  {
+    "scenario_id": "sc-011",
+    "name": "FPV竞速机攻击",
+    "name_en": "FPV Racing Drone Attack",
+    "description": "使用改装FPV竞速/花飞穿越机执行的高速低空攻击任务。这类无人机体型小巧（<250mm轴距）、速度极高（>35m/s）、飞行高度极低（<50m），且飞行轨迹高度机动多变。传统雷达因多普勒滤波和地面杂波难以稳定跟踪。RF信号可能仅为模拟视频和ELRS/Crossfire控制信号，功率低、带宽窄，RF探测距离有限。在俄乌冲突中，FPV攻击无人机已成为最主要的人员杀伤手段之一，造成大量伤亡。",
+    "target_profile": {
+      "count": 2,
+      "type": "diy_fpv",
+      "speed_range_ms": [30, 50],
+      "altitude_range_m": [5, 100],
+      "approach_pattern": "high_speed",
+      "dwell_expected": false
+    },
+    "threat_assessment_template": {
+      "initial_level": 5,
+      "escalation_triggers": ["确认FPV攻击机信号特征", "多架FPV同时出现", "FPV进入1km攻击圈", "视频信号确认战斗部"],
+      "max_expected_level": 5
+    },
+    "recommended_strategy": {
+      "primary": "rf_jamming_5.8g_900mhz",
+      "secondary": "kinetic_intercept",
+      "avoid": ["gnss_spoofing"],
+      "engagement_distance_m": 1000,
+      "reasoning": "FPV攻击机低空高速飞行，反应时间极短（通常<30秒）。优先使用5.8GHz和900MHz定向干扰破坏其视频和控制链路。动能拦截（如拦截网、近防炮）作为硬杀伤备份。GPS欺骗无效，因为FPV攻击机主要依靠飞手目视操控而非GPS导航。需部署Ku波段低空补盲雷达提高探测概率。"
+    },
+    "historical_success_rate": null,
+    "source": "GENERATED_TEMPLATE",
+    "created": "2026-07-13"
+  },
+  {
+    "scenario_id": "sc-012",
+    "name": "察打一体无人机",
+    "name_en": "Armed ISR Drone Engagement",
+    "description": "面对具备侦察和打击能力的察打一体无人机系统，如Bayraktar TB2或Wing Loong I级别的MALE无人机。这类平台通常在3000-8000m高空巡航，使用光电/红外转塔和合成孔径雷达进行广域监视。一旦发现高价值目标，可在数秒内发射精确制导弹药（如激光半主动制导导弹）。察打一体平台具备超视距（BLOS）通信能力，可在数百公里外由地面控制站操控。对抗这类目标需要中远程防空系统或专用电子战平台。",
+    "target_profile": {
+      "count": 1,
+      "type": "military_fixed_wing",
+      "speed_range_ms": [30, 62],
+      "altitude_range_m": [3000, 8000],
+      "approach_pattern": "loitering",
+      "dwell_expected": true
+    },
+    "threat_assessment_template": {
+      "initial_level": 5,
+      "escalation_triggers": ["MALE平台确认", "武器挂载被光电确认", "SATCOM链路激活", "激光照射信号被探测", "导弹发射特征被捕获"],
+      "max_expected_level": 5
+    },
+    "recommended_strategy": {
+      "primary": "air_defense_system",
+      "secondary": "ew_suite_intercept",
+      "avoid": ["rf_jamming_consumer", "net_gun_capture", "small_arms_fire"],
+      "engagement_distance_m": 15000,
+      "reasoning": "察打一体无人机需要中远程防空导弹系统或战斗机进行拦截。电子战系统可用于干扰其SATCOM链路和制导信号。所有短程、低功率反制手段均无效。15km以上的拦截距离是安全底线，防止无人机在拦截前发射弹药。需协调多层防空网络进行综合作战。"
+    },
+    "historical_success_rate": null,
+    "source": "GENERATED_TEMPLATE",
+    "created": "2026-07-13"
+  },
+  {
+    "scenario_id": "sc-013",
+    "name": "信号干扰下作战",
+    "name_en": "Operations Under EM Contested Environment",
+    "description": "在电磁频谱激烈对抗的复杂环境中执行反无人机作战。敌方可能同时使用电子战系统对我方雷达、通信和反无人机设备实施干扰。我方传感器性能降级：雷达探测距离缩短、虚警率上升、RF探测灵敏度下降、通信链路可能中断。同时，敌方无人机可能利用电磁掩护接近目标，或使用被动制导（电视/红外/惯性）规避我方干扰。需要自适应传感器参数和多样化反制手段在这种降级环境中维持作战效能。",
+    "target_profile": {
+      "count": 3,
+      "type": "military_quadcopter",
+      "speed_range_ms": [12, 25],
+      "altitude_range_m": [50, 500],
+      "approach_pattern": "multi_axis",
+      "dwell_expected": false
+    },
+    "threat_assessment_template": {
+      "initial_level": 4,
+      "escalation_triggers": ["雷达性能降级>50%", "RF探测通道饱和", "通信中断>60秒", "多个传感器同时被干扰", "光电传感器被致盲"],
+      "max_expected_level": 5
+    },
+    "recommended_strategy": {
+      "primary": "optical_tracking",
+      "secondary": "kinetic_intercept",
+      "avoid": ["rf_jamming_only"],
+      "engagement_distance_m": 1500,
+      "reasoning": "在电磁对抗环境中，光学/红外被动传感器成为主要探测手段。需切换到被动探测模式并使用动能拦截。RF干扰效果受敌方干扰影响不可靠。应采用多光谱融合（可见光+红外+声学）弥补雷达和RF探测能力的下降。1.5km距离是基于光学探测能力的务实选择。"
+    },
+    "historical_success_rate": null,
+    "source": "GENERATED_TEMPLATE",
+    "created": "2026-07-13"
+  },
+  {
+    "scenario_id": "sc-014",
+    "name": "城市峡谷环境",
+    "name_en": "Urban Canyon Environment",
+    "description": "在高层建筑密集的城市峡谷环境中执行反无人机任务。城市峡谷带来独特挑战：GPS信号被建筑物遮挡或反射产生多路径效应，导致无人机和探测系统都可能失去精确定位。雷达信号被建筑物多次反射，产生大量虚假回波和盲区。RF通信信号同样受多路径衰落影响，通信距离和可靠性下降。无人机可能在建筑物之间穿行，时隐时现，使连续跟踪极为困难。需要分布式传感器网络和适合城市环境的低附带损伤反制手段。",
+    "target_profile": {
+      "count": 1,
+      "type": "consumer_quadcopter",
+      "speed_range_ms": [5, 15],
+      "altitude_range_m": [20, 200],
+      "approach_pattern": "random",
+      "dwell_expected": true
+    },
+    "threat_assessment_template": {
+      "initial_level": 2,
+      "escalation_triggers": ["无人机进入重点建筑周边", "无人机在建筑间持续穿梭", "确认载荷类型", "无人机接近重要窗口/入口"],
+      "max_expected_level": 4
+    },
+    "recommended_strategy": {
+      "primary": "net_gun_capture",
+      "secondary": "rf_jamming_2.4g_5.8g_directional",
+      "avoid": ["kinetic_intercept", "laser_destruction", "rf_jamming_broadband"],
+      "engagement_distance_m": 200,
+      "reasoning": "城市峡谷中GPS欺骗因多路径效应而可靠性下降。净网枪在近距离最可靠且无附带损伤。定向RF干扰可避免对周边建筑内WiFi和通信的影响。严禁动能拦截和激光武器防止对建筑和人员造成伤亡。200m是城市峡谷中典型的最大有效探测和拦截距离。需部署分布式、多节点传感器网络。"
+    },
+    "historical_success_rate": null,
+    "source": "GENERATED_TEMPLATE",
+    "created": "2026-07-13"
+  },
+  {
+    "scenario_id": "sc-015",
+    "name": "混合威胁-有人机+无人机",
+    "name_en": "Hybrid Threat - Manned and Unmanned Aircraft",
+    "description": "在空域中同时存在有人机和无人机的复杂场景，无人机可能与有人机协同执行任务，也可能利用有人机作为掩护（如无人机混入通用航空飞行中）。交战规则严格限制：必须绝对避免误击有人机。识别敌我（IFF）和区分无人机与有人机成为首要挑战。雷达特征可能相似（小型固定翼无人机与轻型飞机），需要多传感器融合进行身份确认。任何反制决策都必须考虑对附近有人机的飞行安全影响。",
+    "target_profile": {
+      "count": 2,
+      "type": "military_fixed_wing",
+      "speed_range_ms": [15, 60],
+      "altitude_range_m": [100, 3000],
+      "approach_pattern": "gradual",
+      "dwell_expected": true
+    },
+    "threat_assessment_template": {
+      "initial_level": 3,
+      "escalation_triggers": ["不明飞行器未应答IFF", "无人机与有人机接近<500m", "有人机可能为无人机掩护", "无人机进入禁飞区深处", "ADS-B/二次雷达数据与一次雷达不一致"],
+      "max_expected_level": 5
+    },
+    "recommended_strategy": {
+      "primary": "protocol_hijack",
+      "secondary": "rf_jamming_targeted",
+      "avoid": ["kinetic_intercept", "rf_jamming_broadband", "high_power_microwave"],
+      "engagement_distance_m": 3000,
+      "reasoning": "混合威胁场景下误击有人机的风险不可接受。协议劫持可精确控制目标无人机而不影响其他航空器。定向RF干扰需精确指向目标无人机以保护有人机通信。严禁使用动能武器、宽带干扰和高功率微波——这些手段对有人机也构成严重威胁。3000m距离提供充足的身份识别和决策时间。"
+    },
+    "historical_success_rate": null,
+    "source": "GENERATED_TEMPLATE",
+    "created": "2026-07-13"
+  }
+]

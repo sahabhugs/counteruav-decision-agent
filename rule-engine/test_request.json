@@ -1,0 +1,169 @@
+{
+  "request_id": "REQ-TEST-001",
+  "timestamp": "2026-07-14T10:00:00",
+  "defense_center": {
+    "lat": 39.9042,
+    "lon": 116.4074,
+    "alt_m": 50.0
+  },
+  "protected_zone": {
+    "zone_id": "ZONE-001",
+    "center": {
+      "lat": 39.9042,
+      "lon": 116.4074,
+      "alt_m": 50.0
+    },
+    "radius_m": 3000.0,
+    "zone_type": "CIRCLE"
+  },
+  "targets": [
+    {
+      "target_id": "T-CRIT-001",
+      "track_id": "TRK-001",
+      "detection_time": "2026-07-14T09:58:00",
+      "position": {
+        "lat": 39.9050,
+        "lon": 116.4080,
+        "alt_m": 100.0
+      },
+      "velocity_ms": 35.0,
+      "heading_deg": 180.0,
+      "radial_speed_ms": 20.0,
+      "drone_type": "DJI Mavic 3 Modified",
+      "drone_category": "CLUSTER_SWARM",
+      "max_class_confidence": 0.92,
+      "is_evt_open_set": false,
+      "top3_classes": [
+        { "class_name": "Cluster Swarm", "confidence": 0.92 },
+        { "class_name": "Military Fixed Wing", "confidence": 0.05 },
+        { "class_name": "DIY FPV", "confidence": 0.03 }
+      ],
+      "threat_behavior_tags": ["快速抵近", "攻击"],
+      "rf_signature": {
+        "frequency_hz": 2450000000.0,
+        "bandwidth_hz": 20000000.0,
+        "modulation_type": "FHSS",
+        "signal_power_dbm": 5.0,
+        "snr_db": 25.0
+      },
+      "is_over_civilian_area": false,
+      "dwell_time_s": 120
+    },
+    {
+      "target_id": "T-HIGH-001",
+      "track_id": "TRK-002",
+      "detection_time": "2026-07-14T09:59:00",
+      "position": {
+        "lat": 39.8950,
+        "lon": 116.4000,
+        "alt_m": 150.0
+      },
+      "velocity_ms": 22.0,
+      "heading_deg": 200.0,
+      "radial_speed_ms": 12.0,
+      "drone_type": "Unknown Fixed Wing",
+      "drone_category": "MILITARY_FIXED_WING",
+      "max_class_confidence": 0.78,
+      "is_evt_open_set": false,
+      "top3_classes": [
+        { "class_name": "Military Fixed Wing", "confidence": 0.78 },
+        { "class_name": "Consumer Quadcopter", "confidence": 0.15 },
+        { "class_name": "Unknown", "confidence": 0.07 }
+      ],
+      "threat_behavior_tags": ["侦察"],
+      "rf_signature": {
+        "frequency_hz": 5800000000.0,
+        "bandwidth_hz": 40000000.0,
+        "modulation_type": "OFDM",
+        "signal_power_dbm": -10.0,
+        "snr_db": 15.0
+      },
+      "is_over_civilian_area": true,
+      "dwell_time_s": 180
+    },
+    {
+      "target_id": "T-LOW-001",
+      "track_id": "TRK-003",
+      "detection_time": "2026-07-14T09:55:00",
+      "position": {
+        "lat": 39.8300,
+        "lon": 116.3200,
+        "alt_m": 200.0
+      },
+      "velocity_ms": 4.0,
+      "heading_deg": 90.0,
+      "radial_speed_ms": 1.5,
+      "drone_type": "DJI Mini 3",
+      "drone_category": "CONSUMER_QUADCOPTER",
+      "max_class_confidence": 0.95,
+      "is_evt_open_set": false,
+      "top3_classes": [
+        { "class_name": "DJI Mini 3", "confidence": 0.95 },
+        { "class_name": "DJI Mavic 3", "confidence": 0.03 },
+        { "class_name": "DIY FPV", "confidence": 0.02 }
+      ],
+      "threat_behavior_tags": [],
+      "rf_signature": {
+        "frequency_hz": 2450000000.0,
+        "bandwidth_hz": 10000000.0,
+        "modulation_type": "OFDM",
+        "signal_power_dbm": -20.0,
+        "snr_db": 8.0
+      },
+      "is_over_civilian_area": false,
+      "dwell_time_s": 30
+    }
+  ],
+  "available_devices": [
+    {
+      "device_id": "DEV-RF-01",
+      "type": "RF_JAMMER",
+      "status": "ONLINE",
+      "position": {
+        "lat": 39.9042,
+        "lon": 116.4074,
+        "alt_m": 50.0
+      },
+      "effective_range_m": 3000.0,
+      "frequency_coverage": ["2.4GHz", "5.8GHz"],
+      "max_erp_w": 100
+    },
+    {
+      "device_id": "DEV-GNSS-01",
+      "type": "GNSS_SPOOFER",
+      "status": "ONLINE",
+      "position": {
+        "lat": 39.9042,
+        "lon": 116.4074,
+        "alt_m": 50.0
+      },
+      "effective_range_m": 5000.0,
+      "frequency_coverage": ["GPS_L1", "GPS_L2", "BEIDOU"],
+      "max_erp_w": 50
+    },
+    {
+      "device_id": "DEV-LASER-01",
+      "type": "LASER_WEAPON",
+      "status": "ONLINE",
+      "position": {
+        "lat": 39.9042,
+        "lon": 116.4074,
+        "alt_m": 50.0
+      },
+      "effective_range_m": 2000.0,
+      "frequency_coverage": [],
+      "max_erp_w": 5000
+    }
+  ],
+  "environment": {
+    "wind_speed_ms": 3.5,
+    "wind_direction_deg": 270.0,
+    "temperature_c": 28.0,
+    "humidity_percent": 65.0,
+    "visibility_m": 8000.0,
+    "weather_condition": "晴",
+    "em_environment_desc": "正常",
+    "gps_jamming_detected": false
+  },
+  "mode": "auto"
+}

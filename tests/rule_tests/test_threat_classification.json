@@ -1,0 +1,177 @@
+{
+  "test_suite": "威胁等级分类规则测试",
+  "module": "L2 - threat_classification.drl",
+  "test_cases": [
+    {
+      "test_id": "TC-L2-001-01",
+      "description": "目标距离<500m + 径向速度>15m/s + 快速逼近 → 威胁等级5(极危)",
+      "rule": "L2-001",
+      "input": {
+        "target": {
+          "target_id": "T-TEST-001",
+          "distance": 420,
+          "radialSpeed": 18.5,
+          "intent": "RAPID_APPROACH",
+          "droneCategory": "UNKNOWN"
+        }
+      },
+      "expected": {
+        "threatLevel": 5,
+        "threatLabel": "极危",
+        "threatTags": ["IMMINENT_COLLISION"]
+      }
+    },
+    {
+      "test_id": "TC-L2-001-02",
+      "description": "目标距离=499m(边界) + 速度=15.1m/s(边界) → 威胁等级5",
+      "rule": "L2-001",
+      "input": {
+        "target": {
+          "target_id": "T-TEST-002",
+          "distance": 499,
+          "radialSpeed": 15.1,
+          "intent": "RAPID_APPROACH",
+          "droneCategory": "MILITARY_FIXED_WING"
+        }
+      },
+      "expected": {
+        "threatLevel": 5,
+        "threatTags": ["IMMINENT_COLLISION"]
+      }
+    },
+    {
+      "test_id": "TC-L2-001-03",
+      "description": "目标距离=501m(刚好超出) → 不触发L2-001，应走其他规则",
+      "rule": "L2-001",
+      "input": {
+        "target": {
+          "target_id": "T-TEST-003",
+          "distance": 501,
+          "radialSpeed": 18.0,
+          "intent": "RAPID_APPROACH",
+          "droneCategory": "CONSUMER_QUADCOPTER"
+        }
+      },
+      "expected": {
+        "threatLevel": 4,
+        "threatTags_not": ["IMMINENT_COLLISION"]
+      }
+    },
+    {
+      "test_id": "TC-L2-002-01",
+      "description": "距离<1000m + 民用/未知无人机 → 威胁等级4(高)",
+      "rule": "L2-002",
+      "input": {
+        "target": {
+          "target_id": "T-TEST-004",
+          "distance": 800,
+          "radialSpeed": 5.0,
+          "droneCategory": "CONSUMER_QUADCOPTER"
+        }
+      },
+      "expected": {
+        "threatLevel": 4,
+        "threatLabel": "高"
+      }
+    },
+    {
+      "test_id": "TC-L2-003-01",
+      "description": "距离<3000m + 军用固定翼 → 威胁等级4(高)",
+      "rule": "L2-003",
+      "input": {
+        "target": {
+          "target_id": "T-TEST-005",
+          "distance": 2500,
+          "droneCategory": "MILITARY_FIXED_WING"
+        }
+      },
+      "expected": {
+        "threatLevel": 4
+      }
+    },
+    {
+      "test_id": "TC-L2-004-01",
+      "description": "距离<5000m + 集群蜂群 → 威胁等级4(高)",
+      "rule": "L2-004",
+      "input": {
+        "target": {
+          "target_id": "T-TEST-006",
+          "distance": 4000,
+          "droneCategory": "CLUSTER_SWARM",
+          "threatBehaviorTags": ["CLUSTER_SWARM"]
+        }
+      },
+      "expected": {
+        "threatLevel": 4
+      }
+    },
+    {
+      "test_id": "TC-L2-005-01",
+      "description": "距离>5000m + 低速 → 威胁等级1(低危)",
+      "rule": "L2-005",
+      "input": {
+        "target": {
+          "target_id": "T-TEST-007",
+          "distance": 8000,
+          "radialSpeed": 2.0,
+          "droneCategory": "CONSUMER_QUADCOPTER"
+        }
+      },
+      "expected": {
+        "threatLevel": 1
+      }
+    },
+    {
+      "test_id": "TC-L2-006-01",
+      "description": "驻留>300秒 + 靠近防护区 → 威胁升级一级",
+      "rule": "L2-006",
+      "input": {
+        "target": {
+          "target_id": "T-TEST-008",
+          "distance": 1500,
+          "dwellTimeS": 350,
+          "droneCategory": "UNKNOWN",
+          "threatLevel": 2
+        }
+      },
+      "expected": {
+        "threatLevel": 3,
+        "escalationReason_contains": "驻留时间"
+      }
+    },
+    {
+      "test_id": "TC-L2-007-01",
+      "description": "目标位于民用区域上空 + 威胁等级≥4 → 标注ROE审查",
+      "rule": "L2-007",
+      "input": {
+        "target": {
+          "target_id": "T-TEST-009",
+          "distance": 2000,
+          "isOverCivilianArea": true,
+          "threatLevel": 4
+        }
+      },
+      "expected": {
+        "hasROEFlag": true
+      }
+    },
+    {
+      "test_id": "TC-EDGE-MULTI-001",
+      "description": "多规则同时匹配：距离<500且民用且快速逼近 → L2-001优先(高salience)",
+      "rules_involved": ["L2-001", "L2-002"],
+      "input": {
+        "target": {
+          "target_id": "T-TEST-010",
+          "distance": 350,
+          "radialSpeed": 20.0,
+          "intent": "RAPID_APPROACH",
+          "droneCategory": "CONSUMER_QUADCOPTER"
+        }
+      },
+      "expected": {
+        "threatLevel": 5,
+        "decisionSource": "L2-001"
+      }
+    }
+  ]
+}

@@ -1,0 +1,464 @@
+[
+  {
+    "rule_id": "L3-001",
+    "name": "DJI Mavic 3 应对策略",
+    "condition": {
+      "drone_type": ["DJI Mavic 3", "DJI Mavic 3 Pro", "DJI Mavic 3 Classic"],
+      "threat_level_range": [1, 5],
+      "distance_range_m": [0, 5000]
+    },
+    "drone_profile": {
+      "category": "consumer_quadcopter",
+      "typical_freq_bands": ["2.4GHz", "5.8GHz"],
+      "max_speed_ms": 22,
+      "supports_gnss": true,
+      "gnss_constellations": ["GPS_L1", "GLONASS", "BEIDOU", "GALILEO"],
+      "rc_protocol": "O3/OcuSync",
+      "video_link": "O3/OcuSync"
+    },
+    "action": {
+      "primary": "RF_JAMMING",
+      "secondary": "GNSS_SPOOFING",
+      "avoid": ["LASER_DESTRUCTION", "KINETIC_INTERCEPT"],
+      "params": {
+        "frequency_bands": ["2.4GHz", "5.8GHz"],
+        "jamming_mode": "protocol_aware",
+        "power_percent": 60
+      },
+      "reason": "消费级无人机，O3数字图传，2.4/5.8GHz双频，支持多星座GNSS诱骗"
+    }
+  },
+  {
+    "rule_id": "L3-002",
+    "name": "DJI Mini 3 应对策略",
+    "condition": {
+      "drone_type": ["DJI Mini 3", "DJI Mini 3 Pro", "DJI Mini 2", "DJI Mini 4 Pro"],
+      "threat_level_range": [1, 4],
+      "distance_range_m": [0, 3000]
+    },
+    "drone_profile": {
+      "category": "consumer_quadcopter",
+      "typical_freq_bands": ["2.4GHz", "5.8GHz"],
+      "max_speed_ms": 16,
+      "supports_gnss": true,
+      "gnss_constellations": ["GPS_L1", "GLONASS", "GALILEO"],
+      "rc_protocol": "O2/OcuSync",
+      "video_link": "O2"
+    },
+    "action": {
+      "primary": "RF_JAMMING",
+      "secondary": "MONITOR",
+      "avoid": ["LASER_DESTRUCTION", "HPM_PULSE"],
+      "params": {
+        "frequency_bands": ["2.4GHz", "5.8GHz"],
+        "jamming_mode": "protocol_aware",
+        "power_percent": 40
+      },
+      "reason": "轻型消费级无人机(<249g)，O2图传，低功率射频干扰即可有效反制"
+    }
+  },
+  {
+    "rule_id": "L3-003",
+    "name": "DJI Phantom 4 应对策略",
+    "condition": {
+      "drone_type": ["DJI Phantom 4", "DJI Phantom 4 Pro", "DJI Phantom 4 Advanced", "DJI Phantom 4 RTK"],
+      "threat_level_range": [1, 5],
+      "distance_range_m": [0, 5000]
+    },
+    "drone_profile": {
+      "category": "consumer_quadcopter",
+      "typical_freq_bands": ["2.4GHz", "5.8GHz"],
+      "max_speed_ms": 20,
+      "supports_gnss": true,
+      "gnss_constellations": ["GPS_L1", "GLONASS"],
+      "rc_protocol": "Lightbridge",
+      "video_link": "Lightbridge"
+    },
+    "action": {
+      "primary": "RF_JAMMING",
+      "secondary": "GNSS_SPOOFING",
+      "avoid": ["LASER_DESTRUCTION"],
+      "params": {
+        "frequency_bands": ["2.4GHz", "5.8GHz"],
+        "jamming_mode": "wideband_noise",
+        "power_percent": 70,
+        "gnss_spoofing": "position_hijack"
+      },
+      "reason": "经典款消费级无人机，Lightbridge图传，2.4GHz主控+5.8GHz图传，GNSS诱骗有效"
+    }
+  },
+  {
+    "rule_id": "L3-004",
+    "name": "DJI Matrice 300 应对策略",
+    "condition": {
+      "drone_type": ["DJI Matrice 300 RTK", "DJI Matrice 350 RTK"],
+      "threat_level_range": [2, 5],
+      "distance_range_m": [0, 8000]
+    },
+    "drone_profile": {
+      "category": "consumer_quadcopter",
+      "typical_freq_bands": ["2.4GHz", "5.8GHz", "1.4GHz"],
+      "max_speed_ms": 23,
+      "supports_gnss": true,
+      "gnss_constellations": ["GPS_L1_L2", "GLONASS", "BEIDOU", "GALILEO"],
+      "rc_protocol": "OcuSync Enterprise",
+      "video_link": "OcuSync Enterprise"
+    },
+    "action": {
+      "primary": "RF_JAMMING",
+      "secondary": "GNSS_SPOOFING",
+      "avoid": ["KINETIC_INTERCEPT"],
+      "params": {
+        "frequency_bands": ["2.4GHz", "5.8GHz"],
+        "jamming_mode": "protocol_aware",
+        "power_percent": 75,
+        "gnss_spoofing": "multi_constellation"
+      },
+      "reason": "行业级无人机，OcuSync Enterprise多频段，支持RTK高精度定位，需多频段+多星座诱骗"
+    }
+  },
+  {
+    "rule_id": "L3-005",
+    "name": "Autel EVO II 应对策略",
+    "condition": {
+      "drone_type": ["Autel EVO II", "Autel EVO II Pro", "Autel EVO II Dual", "Autel EVO II RTK"],
+      "threat_level_range": [1, 5],
+      "distance_range_m": [0, 5000]
+    },
+    "drone_profile": {
+      "category": "consumer_quadcopter",
+      "typical_freq_bands": ["2.4GHz", "5.8GHz", "900MHz"],
+      "max_speed_ms": 20,
+      "supports_gnss": true,
+      "gnss_constellations": ["GPS_L1", "GLONASS", "BEIDOU", "GALILEO"],
+      "rc_protocol": "SkyLark",
+      "video_link": "SkyLark"
+    },
+    "action": {
+      "primary": "RF_JAMMING",
+      "secondary": "GNSS_SPOOFING",
+      "avoid": ["LASER_DESTRUCTION"],
+      "params": {
+        "frequency_bands": ["2.4GHz", "5.8GHz", "900MHz"],
+        "jamming_mode": "protocol_aware",
+        "power_percent": 65
+      },
+      "reason": "Autel SkyLark图传系统，2.4/5.8GHz+900MHz三频段，需全频段覆盖干扰"
+    }
+  },
+  {
+    "rule_id": "L3-006",
+    "name": "Fimi X8 应对策略",
+    "condition": {
+      "drone_type": ["Fimi X8 SE", "Fimi X8 Mini", "Fimi X8 Pro"],
+      "threat_level_range": [1, 4],
+      "distance_range_m": [0, 4000]
+    },
+    "drone_profile": {
+      "category": "consumer_quadcopter",
+      "typical_freq_bands": ["2.4GHz"],
+      "max_speed_ms": 18,
+      "supports_gnss": true,
+      "gnss_constellations": ["GPS_L1", "GLONASS", "BEIDOU"],
+      "rc_protocol": "TDMA",
+      "video_link": "TDMA"
+    },
+    "action": {
+      "primary": "RF_JAMMING",
+      "secondary": "MONITOR",
+      "avoid": ["LASER_DESTRUCTION", "HPM_PULSE"],
+      "params": {
+        "frequency_bands": ["2.4GHz"],
+        "jamming_mode": "protocol_aware",
+        "power_percent": 50
+      },
+      "reason": "小米系无人机，TDMA协议，2.4GHz单频段，针对性干扰即可"
+    }
+  },
+  {
+    "rule_id": "L3-007",
+    "name": "Skydio 2 应对策略",
+    "condition": {
+      "drone_type": ["Skydio 2", "Skydio 2+", "Skydio X2", "Skydio X10"],
+      "threat_level_range": [1, 5],
+      "distance_range_m": [0, 3000]
+    },
+    "drone_profile": {
+      "category": "consumer_quadcopter",
+      "typical_freq_bands": ["5GHz"],
+      "max_speed_ms": 16,
+      "supports_gnss": true,
+      "gnss_constellations": ["GPS_L1", "GLONASS"],
+      "rc_protocol": "WiFi 5GHz",
+      "video_link": "WiFi 5GHz",
+      "notes": "高度自主飞行，视觉避障，GNSS非必需"
+    },
+    "action": {
+      "primary": "RF_JAMMING",
+      "secondary": "OPTICAL_DETECTION",
+      "avoid": ["GNSS_SPOOFING"],
+      "params": {
+        "frequency_bands": ["5GHz"],
+        "jamming_mode": "protocol_aware",
+        "power_percent": 55,
+        "optical_tracking": "enabled"
+      },
+      "reason": "自主飞行无人机，依赖5GHz WiFi，GNSS诱骗效果有限，需光电追踪协同对抗"
+    }
+  },
+  {
+    "rule_id": "L3-008",
+    "name": "Parrot Anafi 应对策略",
+    "condition": {
+      "drone_type": ["Parrot Anafi", "Parrot Anafi USA", "Parrot Anafi Ai", "Parrot Anafi Thermal"],
+      "threat_level_range": [1, 4],
+      "distance_range_m": [0, 3000]
+    },
+    "drone_profile": {
+      "category": "consumer_quadcopter",
+      "typical_freq_bands": ["2.4GHz", "5GHz"],
+      "max_speed_ms": 15,
+      "supports_gnss": true,
+      "gnss_constellations": ["GPS_L1", "GLONASS", "GALILEO"],
+      "rc_protocol": "WiFi 802.11ac",
+      "video_link": "WiFi 802.11ac"
+    },
+    "action": {
+      "primary": "RF_JAMMING",
+      "secondary": "GNSS_SPOOFING",
+      "avoid": ["LASER_DESTRUCTION", "KINETIC_INTERCEPT"],
+      "params": {
+        "frequency_bands": ["2.4GHz", "5GHz"],
+        "jamming_mode": "wideband_noise",
+        "power_percent": 55
+      },
+      "reason": "法国Parrot无人机，WiFi图传，2.4/5GHz双频，轻量级干扰即可"
+    }
+  },
+  {
+    "rule_id": "L3-009",
+    "name": "DIY 5寸FPV 应对策略",
+    "condition": {
+      "drone_type": ["DIY 5-inch FPV", "Custom 5\" FPV", "Racing FPV Drone"],
+      "threat_level_range": [2, 5],
+      "distance_range_m": [0, 2000]
+    },
+    "drone_profile": {
+      "category": "diy_fpv",
+      "typical_freq_bands": ["5.8GHz", "2.4GHz"],
+      "max_speed_ms": 45,
+      "supports_gnss": false,
+      "gnss_constellations": [],
+      "rc_protocol": "ELRS/Crossfire/ACCST",
+      "video_link": "Analog/HDZero/Walksnail",
+      "notes": "高机动性，手动飞行，无GNSS依赖，反应极快"
+    },
+    "action": {
+      "primary": "FULL_BAND_JAMMING",
+      "secondary": "OPTICAL_DETECTION",
+      "avoid": ["GNSS_SPOOFING"],
+      "params": {
+        "frequency_bands": ["5.8GHz", "2.4GHz", "900MHz"],
+        "jamming_mode": "full_spectrum",
+        "power_percent": 85,
+        "optical_tracking": "enabled",
+        "response_time_ms": "minimum"
+      },
+      "reason": "FPV竞速改装机，极高机动性，无GNSS=诱骗无效，需全频段强力干扰+光电追踪"
+    }
+  },
+  {
+    "rule_id": "L3-010",
+    "name": "DIY 7寸远程FPV 应对策略",
+    "condition": {
+      "drone_type": ["DIY 7-inch FPV", "Custom 7\" Long Range FPV", "Long Range FPV Drone"],
+      "threat_level_range": [2, 5],
+      "distance_range_m": [0, 10000]
+    },
+    "drone_profile": {
+      "category": "diy_fpv",
+      "typical_freq_bands": ["900MHz", "5.8GHz", "2.4GHz"],
+      "max_speed_ms": 30,
+      "supports_gnss": true,
+      "gnss_constellations": ["GPS_L1", "BEIDOU"],
+      "rc_protocol": "ELRS 900MHz/Crossfire",
+      "video_link": "Analog 5.8GHz/DJI FPV",
+      "notes": "远程FPV，飞行距离10-30km，低频遥控"
+    },
+    "action": {
+      "primary": "FULL_BAND_JAMMING",
+      "secondary": "GNSS_SPOOFING",
+      "avoid": [],
+      "params": {
+        "frequency_bands": ["900MHz", "2.4GHz", "5.8GHz"],
+        "jamming_mode": "full_spectrum_long_range",
+        "power_percent": 100,
+        "gnss_spoofing": "position_hijack",
+        "range_compensation": "enabled"
+      },
+      "reason": "远程FPV，900MHz低频遥控穿透力强，需全频段大功率干扰+GNSS诱骗双重压制"
+    }
+  },
+  {
+    "rule_id": "L3-011",
+    "name": "DJI FPV 应对策略",
+    "condition": {
+      "drone_type": ["DJI FPV", "DJI Avata", "DJI Avata 2"],
+      "threat_level_range": [1, 5],
+      "distance_range_m": [0, 4000]
+    },
+    "drone_profile": {
+      "category": "consumer_quadcopter",
+      "typical_freq_bands": ["2.4GHz", "5.8GHz"],
+      "max_speed_ms": 39,
+      "supports_gnss": true,
+      "gnss_constellations": ["GPS_L1", "GLONASS", "BEIDOU", "GALILEO"],
+      "rc_protocol": "O3/OcuSync",
+      "video_link": "DJI FPV Goggles digital"
+    },
+    "action": {
+      "primary": "RF_JAMMING",
+      "secondary": "GNSS_SPOOFING",
+      "avoid": [],
+      "params": {
+        "frequency_bands": ["2.4GHz", "5.8GHz"],
+        "jamming_mode": "protocol_aware_high_speed",
+        "power_percent": 80,
+        "gnss_spoofing": "position_hijack",
+        "anti_maneuver": "enabled"
+      },
+      "reason": "DJI高速FPV，双频O3图传，最大速度39m/s，需高速跟踪+双频干扰+GNSS诱骗"
+    }
+  },
+  {
+    "rule_id": "L3-012",
+    "name": "Orlan-10 应对策略",
+    "condition": {
+      "drone_type": ["Orlan-10", "Orlan-30", "Orlan-50"],
+      "threat_level_range": [4, 5],
+      "distance_range_m": [0, 15000]
+    },
+    "drone_profile": {
+      "category": "military_fixed_wing",
+      "typical_freq_bands": ["868MHz", "2.4GHz", "3.2GHz"],
+      "max_speed_ms": 33,
+      "supports_gnss": true,
+      "gnss_constellations": ["GPS_L1_L2", "GLONASS"],
+      "rc_protocol": "Military UHF/SHF",
+      "video_link": "Encrypted SATCOM",
+      "notes": "俄制军用战术侦察无人机，电子战自卫系统，加密通信"
+    },
+    "action": {
+      "primary": "HPM_PULSE",
+      "secondary": "FULL_BAND_JAMMING",
+      "avoid": ["GNSS_SPOOFING"],
+      "params": {
+        "frequency_bands": ["868MHz", "2.4GHz", "3.2GHz", "5.8GHz"],
+        "jamming_mode": "electronic_warfare",
+        "power_percent": 100,
+        "hpm_mode": "directional_beam",
+        "ew_countermeasures": "enabled"
+      },
+      "reason": "军用战术无人机，加密通信+电子战自卫，需电子战级别全频段压制+高功率微波定向打击"
+    }
+  },
+  {
+    "rule_id": "L3-013",
+    "name": "RQ-11 Raven 应对策略",
+    "condition": {
+      "drone_type": ["RQ-11 Raven", "RQ-11B Raven", "RQ-11 DDL"],
+      "threat_level_range": [3, 5],
+      "distance_range_m": [0, 10000]
+    },
+    "drone_profile": {
+      "category": "military_fixed_wing",
+      "typical_freq_bands": ["2.4GHz", "4.4GHz"],
+      "max_speed_ms": 27,
+      "supports_gnss": true,
+      "gnss_constellations": ["GPS_L1_L2_SAASM"],
+      "rc_protocol": "AES-256 encrypted C2",
+      "video_link": "Encrypted Digital Data Link",
+      "notes": "美军手持发射战术侦察无人机，AES-256军事级加密，SAASM军用GPS"
+    },
+    "action": {
+      "primary": "GNSS_SPOOFING",
+      "secondary": "KINETIC_INTERCEPT",
+      "avoid": ["RF_JAMMING"],
+      "params": {
+        "gnss_spoofing": "military_grade_spoofing",
+        "kinetic_type": "net_gun_or_projectile",
+        "frequency_bands": ["4.4GHz"],
+        "jamming_mode": "selective_data_link",
+        "engagement_rule": "commander_authorization_required"
+      },
+      "reason": "AES-256军用加密链路难以干扰，优先GNSS诱骗破坏导航+动能拦截作为硬杀伤手段"
+    }
+  },
+  {
+    "rule_id": "L3-014",
+    "name": "DJI Agras T30 应对策略",
+    "condition": {
+      "drone_type": ["DJI Agras T30", "DJI Agras T40", "DJI Agras T50", "DJI Agras T25"],
+      "threat_level_range": [1, 4],
+      "distance_range_m": [0, 3000]
+    },
+    "drone_profile": {
+      "category": "consumer_quadcopter",
+      "typical_freq_bands": ["2.4GHz", "5.8GHz"],
+      "max_speed_ms": 10,
+      "supports_gnss": true,
+      "gnss_constellations": ["GPS_L1_L2", "GLONASS", "BEIDOU", "GALILEO"],
+      "rc_protocol": "OcuSync Enterprise + RTK",
+      "video_link": "OcuSync Enterprise",
+      "notes": "大型农业无人机，载荷30-50kg，RTK厘米级定位，可改装为武器平台"
+    },
+    "action": {
+      "primary": "RF_JAMMING",
+      "secondary": "GNSS_SPOOFING",
+      "avoid": ["LASER_DESTRUCTION"],
+      "params": {
+        "frequency_bands": ["2.4GHz", "5.8GHz"],
+        "jamming_mode": "protocol_aware_targeted",
+        "power_percent": 70,
+        "gnss_spoofing": "rtk_override",
+        "payload_concern": "mitigate"
+      },
+      "reason": "大型农业无人机载荷大，可改装为武器平台，需针对性干扰+RTK诱骗，警惕大载荷"
+    }
+  },
+  {
+    "rule_id": "L3-015",
+    "name": "Bayraktar TB2 应对策略",
+    "condition": {
+      "drone_type": ["Bayraktar TB2", "Bayraktar TB3", "Bayraktar Akinci"],
+      "threat_level_range": [4, 5],
+      "distance_range_m": [0, 30000]
+    },
+    "drone_profile": {
+      "category": "military_fixed_wing",
+      "typical_freq_bands": ["SATCOM Ku/Ka", "LOS C-Band", "UHF"],
+      "max_speed_ms": 62,
+      "supports_gnss": true,
+      "gnss_constellations": ["GPS_L1_L2_SAASM", "GLONASS", "INS_backup"],
+      "rc_protocol": "SATCOM + LOS dual redundant",
+      "video_link": "SATCOM Full HD",
+      "notes": "土耳其MALE察打一体无人机，卫星通信+视距双冗余，INS/GPS组合导航，携带精确制导弹药"
+    },
+    "action": {
+      "primary": "FULL_BAND_JAMMING",
+      "secondary": "KINETIC_INTERCEPT",
+      "avoid": ["RF_JAMMING"],
+      "params": {
+        "frequency_bands": ["SATCOM_UPLINK", "C-Band", "UHF", "GPS"],
+        "jamming_mode": "electronic_warfare_full_spectrum",
+        "power_percent": 100,
+        "hpm_mode": "directional_beam",
+        "kinetic_type": "surface_to_air_missile",
+        "satcom_jamming": "uplink_downlink_both",
+        "engagement_rule": "high_command_authorization_required",
+        "civilian_airspace_clearance": "required"
+      },
+      "reason": "MALE察打一体无人机，SATCOM+视距双冗余，INS抗GNSS干扰，需全频段电子战+防空导弹硬杀伤，需最高指挥授权"
+    }
+  }
+]

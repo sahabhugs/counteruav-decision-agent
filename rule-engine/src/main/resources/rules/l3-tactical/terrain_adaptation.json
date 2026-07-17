@@ -1,0 +1,116 @@
+[
+  {
+    "rule_id": "L3-T001",
+    "name": "城市环境适应",
+    "terrain": "urban",
+    "characteristics": {
+      "multipath": "high",
+      "rf_propagation": "poor",
+      "civilian_density": "high",
+      "line_of_sight": "blocked"
+    },
+    "adaptations": {
+      "preferred_sensors": ["distributed_optical", "acoustic_array"],
+      "jamming_strategy": "distributed_node_jamming",
+      "power_adjustment": "reduced_for_civilian_safety",
+      "coverage_strategy": "mesh_network_sensors",
+      "engagement_rules": "no_kinetic_over_populated",
+      "reason": "城市高楼多径效应严重，需部署分布式传感器网络，禁止动能武器"
+    }
+  },
+  {
+    "rule_id": "L3-T002",
+    "name": "山地环境适应",
+    "terrain": "mountain",
+    "characteristics": {
+      "multipath": "medium",
+      "rf_propagation": "good_line_of_sight",
+      "civilian_density": "low",
+      "line_of_sight": "ridge_dependent"
+    },
+    "adaptations": {
+      "preferred_sensors": ["radar", "optical_ridge_mounted"],
+      "jamming_strategy": "ridge_line_deployment",
+      "power_adjustment": "high_for_range",
+      "coverage_strategy": "ridgeline_coverage",
+      "engagement_rules": "standard_rules_apply",
+      "reason": "山地视距受山脊限制，设备部署于山脊线以最大化覆盖"
+    }
+  },
+  {
+    "rule_id": "L3-T003",
+    "name": "海岸/海上环境适应",
+    "terrain": "coastal",
+    "characteristics": {
+      "multipath": "medium_water_reflection",
+      "rf_propagation": "good_over_water",
+      "civilian_density": "medium",
+      "line_of_sight": "open_horizon"
+    },
+    "adaptations": {
+      "preferred_sensors": ["maritime_radar", "long_range_optical"],
+      "jamming_strategy": "elevated_maritime_platform",
+      "power_adjustment": "maximum_for_horizon",
+      "coverage_strategy": "shoreline_arc",
+      "engagement_rules": "no_debris_over_waterways",
+      "reason": "海面反射增强多径，水面开阔需长距离探测，避免残骸落入航道"
+    }
+  },
+  {
+    "rule_id": "L3-T004",
+    "name": "沙漠环境适应",
+    "terrain": "desert",
+    "characteristics": {
+      "multipath": "low",
+      "rf_propagation": "excellent",
+      "civilian_density": "very_low",
+      "line_of_sight": "excellent"
+    },
+    "adaptations": {
+      "preferred_sensors": ["long_range_radar", "thermal_optical"],
+      "jamming_strategy": "long_range_high_power",
+      "power_adjustment": "maximum",
+      "coverage_strategy": "wide_area_scan",
+      "engagement_rules": "rules_relaxed_for_remote",
+      "reason": "沙漠开阔地带，无线电传播条件极佳，可使用最大功率远距离探测和干扰"
+    }
+  },
+  {
+    "rule_id": "L3-T005",
+    "name": "森林环境适应",
+    "terrain": "forest",
+    "characteristics": {
+      "multipath": "very_high",
+      "rf_propagation": "severely_attenuated",
+      "civilian_density": "low",
+      "line_of_sight": "heavily_obscured"
+    },
+    "adaptations": {
+      "preferred_sensors": ["acoustic_array", "elevated_optical_mast"],
+      "jamming_strategy": "aerial_relay_jamming",
+      "power_adjustment": "increased_for_canopy_penetration",
+      "coverage_strategy": "airborne_relay",
+      "engagement_rules": "fire_safety_priority",
+      "reason": "森林树冠层严重衰减RF信号，需空中中继平台，注意防火安全"
+    }
+  },
+  {
+    "rule_id": "L3-T006",
+    "name": "机场/关键基础设施环境",
+    "terrain": "critical_infrastructure",
+    "characteristics": {
+      "multipath": "medium",
+      "rf_propagation": "controlled",
+      "civilian_density": "high_nearby",
+      "line_of_sight": "mixed"
+    },
+    "adaptations": {
+      "preferred_sensors": ["multi_sensor_fusion", "radar_optical"],
+      "jamming_strategy": "precision_directional_only",
+      "power_adjustment": "carefully_controlled",
+      "coverage_strategy": "perimeter_defense_layers",
+      "engagement_rules": "no_interference_with_aviation_systems",
+      "reason": "关键基础设施附近，严格控制干扰功率避免影响民航和通信系统"
+    }
+  }
+]

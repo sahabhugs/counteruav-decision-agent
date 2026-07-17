@@ -1,0 +1,138 @@
+package rules.l1_physics;
+
+import com.counteruav.model.*;
+import com.counteruav.model.Target.*;
+import java.util.List;
+import java.util.ArrayList;
+
+// ===== L1物理层规则：基于运动学与信号特征的底层威胁判断 =====
+// 该层规则直接处理传感器原始数据，无需上下文积累，使用无状态会话高频匹配
+
+function void addL1Rule(Target t, String ruleId) {
+    if (t.getMatchedRules() == null) {
+        t.setMatchedRules(new ArrayList<String>());
+    }
+    t.getMatchedRules().add(ruleId);
+}
+
+function double haversineDistance(LatLonAlt p1, LatLonAlt p2) {
+    double R = 6371000;
+    double dLat = Math.toRadians(p2.getLat() - p1.getLat());
+    double dLon = Math.toRadians(p2.getLon() - p1.getLon());
+    double a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+               Math.cos(Math.toRadians(p1.getLat())) * Math.cos(Math.toRadians(p2.getLat())) *
+               Math.sin(dLon/2) * Math.sin(dLon/2);
+    double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+}
+
+// ===== 运动学威胁规则 =====
+
+rule "L1-001: 超高速目标(>50m/s)"
+agenda-group "threat-classification"
+salience 100
+when
+    $t : Target(velocityMs > 50, threatLevel == null)
+then
+    $t.setThreatLevel(ThreatLevel.HIGH);
+    $t.setThreatScore(75.0);
+    $t.setEscalationReason("超高速目标(" + String.format("%.1f", $t.getVelocityMs()) + "m/s)");
+    addL1Rule($t, "L1-001");
+end
+
+rule "L1-002: 径向高速抵近(>20m/s)"
+agenda-group "threat-classification"
+salience 90
+when
+    $t : Target(radialSpeedMs > 20, threatLevel == null)
+then
+    $t.setThreatLevel(ThreatLevel.HIGH);
+    $t.setThreatScore(70.0);
+    $t.setEscalationReason("径向高速抵近(" + String.format("%.1f", $t.getRadialSpeedMs()) + "m/s)");
+    addL1Rule($t, "L1-002");
+end
+
+rule "L1-003: 低空低速目标(<50m高度, <5m/s)"
+agenda-group "threat-classification"
+salience 70
+when
+    $t : Target(velocityMs < 5, position.altM < 50, threatLevel == null)
+then
+    $t.setThreatLevel(ThreatLevel.MEDIUM);
+    $t.setThreatScore(40.0);
+    $t.setEscalationReason("低空低速目标(高度" + String.format("%.1f", $t.getPosition().getAltM()) + "m, 速度" + String.format("%.1f", $t.getVelocityMs()) + "m/s)，疑似侦察或悬停");
+    addL1Rule($t, "L1-003");
+end
+
+// ===== 射频信号威胁规则 =====
+
+rule "L1-010: 强信号抵近(SNR>20dB)"
+agenda-group "threat-classification"
+salience 85
+when
+    $t : Target(rfSignature != null, rfSignature.snrDb > 20)
+then
+    int currentLevel = $t.getThreatLevel() != null ? $t.getThreatLevel().getLevel() : 2;
+    if (currentLevel < 4) {
+        $t.setThreatLevel(ThreatLevel.fromLevel(currentLevel + 1));
+        $t.setThreatScore(Math.min(100, $t.getThreatScore() + 10));
+        $t.setEscalationReason(($t.getEscalationReason() != null ? $t.getEscalationReason() + "；" : "") + "强信号(SNR=" + String.format("%.1f", $t.getRfSignature().getSnrDb()) + "dB)，威胁升级");
+    }
+    addL1Rule($t, "L1-010");
+end
+
+rule "L1-011: 跳频调制(FHSS)目标标记"
+agenda-group "threat-classification"
+salience 80
+when
+    $t : Target(rfSignature != null, rfSignature.modulationType != null,
+                rfSignature.modulationType in ("FHSS", "DSSS"))
+then
+    int currentLevel = $t.getThreatLevel() != null ? $t.getThreatLevel().getLevel() : 2;
+    if (currentLevel < 4) {
+        $t.setThreatLevel(ThreatLevel.fromLevel(currentLevel + 1));
+        $t.setThreatScore(Math.min(100, $t.getThreatScore() + 12));
+        $t.setEscalationReason(($t.getEscalationReason() != null ? $t.getEscalationReason() + "；" : "") + "检测到扩频/跳频信号(" + $t.getRfSignature().getModulationType() + ")，疑似军用级通信");
+    }
+    addL1Rule($t, "L1-011");
+end
+
+rule "L1-012: 高功率信号(>0dBm)"
+agenda-group "threat-classification"
+salience 75
+when
+    $t : Target(rfSignature != null, rfSignature.signalPowerDbm > 0)
+then
+    int currentLevel = $t.getThreatLevel() != null ? $t.getThreatLevel().getLevel() : 2;
+    if (currentLevel < 3) {
+        $t.setThreatLevel(ThreatLevel.fromLevel(currentLevel + 1));
+        $t.setThreatScore(Math.min(100, $t.getThreatScore() + 8));
+        $t.setEscalationReason(($t.getEscalationReason() != null ? $t.getEscalationReason() + "；" : "") + "高功率信号(" + String.format("%.1f", $t.getRfSignature().getSignalPowerDbm()) + "dBm)");
+    }
+    addL1Rule($t, "L1-012");
+end
+
+// ===== 分类置信度规则 =====
+
+rule "L1-020: 高置信度分类应用"
+agenda-group "threat-classification"
+salience 60
+when
+    $t : Target(maxClassConfidence > 0.85, droneCategory != DroneCategory.UNKNOWN, threatLevel == null)
+then
+    // 高置信度分类结果可直接用于威胁等级调整
+    // 此处不直接设置威胁等级，仅标记规则匹配供综合评估使用
+    addL1Rule($t, "L1-020");
+end
+
+rule "L1-021: 低置信度分类标记"
+agenda-group "threat-classification"
+salience 55
+when
+    $t : Target(maxClassConfidence < 0.60, threatLevel == null)
+then
+    $t.setThreatLevel(ThreatLevel.MEDIUM);
+    $t.setThreatScore(35.0);
+    $t.setEscalationReason("分类置信度低(" + String.format("%.2f", $t.getMaxClassConfidence()) + ")，无法确定无人机类型");
+    addL1Rule($t, "L1-021");
+end

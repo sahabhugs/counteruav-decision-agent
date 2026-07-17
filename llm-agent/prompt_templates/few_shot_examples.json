@@ -1,0 +1,460 @@
+[
+  {
+    "id": 1,
+    "title": "未知无人机高速接近 → 威胁5 + 全频段压制",
+    "situation_summary": "雷达探测到未知型号无人机，以35m/s高速向我方核心区域直飞接近，CPA预计120秒，无GNSS信号特征，电磁信号混乱。",
+    "task": "评估该目标威胁并生成处置建议",
+    "expected_tool_calls": [
+      "query_kb(entity_type='drone', query='高速未知无人机')",
+      "run_topsis(target_id='T001')",
+      "search_rules(query='高速接近 未知型号')",
+      "check_devices(device_type='干扰器')"
+    ],
+    "expected_output": {
+      "threat_assessment": {
+        "threat_score": 0.92,
+        "threat_level": 5,
+        "confidence": 0.85,
+        "key_factors": ["高速接近", "未知型号", "接近核心区域", "信号异常"],
+        "uncertainty_flags": ["未知型号", "信号异常"]
+      },
+      "recommended_action": {
+        "action_type": "全频段压制",
+        "priority": 1,
+        "expected_effect": "阻断目标所有通信和导航链路，迫使其返航或降落"
+      }
+    }
+  },
+  {
+    "id": 2,
+    "title": "已知DJI消费级 + 中等距离 → 威胁3 + 2.4/5.8GHz干扰",
+    "situation_summary": "光电设备确认目标为DJI Mavic 3消费级无人机，距离3.2km，高度120m，悬停状态，2.4GHz和5.8GHz信号特征明显。下方为工业区，无密集人口。",
+    "task": "评估该目标威胁并生成处置建议",
+    "expected_tool_calls": [
+      "query_kb(entity_type='drone', query='DJI Mavic 3')",
+      "run_topsis(target_id='T002')",
+      "search_rules(query='消费级无人机 工业区')",
+      "check_devices(device_type='干扰器')"
+    ],
+    "expected_output": {
+      "threat_assessment": {
+        "threat_score": 0.55,
+        "threat_level": 3,
+        "confidence": 0.90,
+        "key_factors": ["消费级型号", "悬停侦察行为", "中等距离", "工业区环境"],
+        "uncertainty_flags": []
+      },
+      "recommended_action": {
+        "action_type": "选择性干扰",
+        "priority": 2,
+        "devices": ["jammer_2g4_01", "jammer_5g8_01"],
+        "parameters": {"target_bands": ["2.4GHz", "5.8GHz"], "power_level": "medium"},
+        "expected_effect": "切断遥控和图传信号，迫使其自动返航"
+      }
+    }
+  },
+  {
+    "id": 3,
+    "title": "蜂群攻击（5+目标） → 威胁5 + 全频段+微波",
+    "situation_summary": "雷达同时捕获7个小型无人机目标，呈扇形编队向我方阵地推进，速度12-18m/s，间距50-80m，部分目标已进入3km警戒圈。信号特征为多频段跳频，疑似协同攻击。",
+    "task": "评估蜂群威胁并生成处置建议",
+    "expected_tool_calls": [
+      "query_kb(entity_type='scenario', query='蜂群攻击')",
+      "run_topsis(target_id='T003')",
+      "search_rules(query='蜂群 多目标 协同攻击')",
+      "check_devices()"
+    ],
+    "expected_output": {
+      "threat_assessment": {
+        "threat_score": 0.98,
+        "threat_level": 5,
+        "confidence": 0.92,
+        "key_factors": ["蜂群数量7+", "编队推进", "多频段跳频", "进入警戒圈"],
+        "uncertainty_flags": ["多目标", "信号异常"]
+      },
+      "recommended_action": {
+        "action_type": "全频段压制",
+        "priority": 1,
+        "devices": ["full_band_jammer_01", "microwave_01"],
+        "parameters": {"coverage_angle": "120deg", "power_level": "max"},
+        "expected_effect": "全频段压制配合微波毁伤，对蜂群进行面杀伤",
+        "alternative_actions": [
+          {"action_type": "微波毁伤", "reason": "作为全频段压制的补充，对密集编队效果显著"}
+        ]
+      }
+    }
+  },
+  {
+    "id": 4,
+    "title": "单慢目标 + 远距离 → 威胁1 + 监测",
+    "situation_summary": "雷达在12km处捕获小型慢速飞行目标，速度3m/s，高度50m，航迹不规则。初步判断为民间爱好者放飞的航模或风筝。距离核心区域远，无威胁性信号特征。",
+    "task": "评估该目标威胁并生成处置建议",
+    "expected_tool_calls": [
+      "query_kb(entity_type='drone', query='民用低速航模')",
+      "run_topsis(target_id='T004')"
+    ],
+    "expected_output": {
+      "threat_assessment": {
+        "threat_score": 0.10,
+        "threat_level": 1,
+        "confidence": 0.88,
+        "key_factors": ["慢速飞行", "远距离12km", "无恶意特征", "疑似民用"],
+        "uncertainty_flags": ["数据不完整"]
+      },
+      "recommended_action": {
+        "action_type": "监测",
+        "priority": 10,
+        "expected_effect": "持续监测目标航迹，无明显威胁时不采取主动措施"
+      }
+    }
+  },
+  {
+    "id": 5,
+    "title": "平民区上空目标 → 降级硬杀伤 倾向软杀伤",
+    "situation_summary": "中型四旋翼无人机在市区商业广场上方300m处悬停，已持续10分钟。光电识别为改装型工业无人机（载有不明载荷），下方人流密集。无法确认目标意图，但处于禁飞区。",
+    "task": "评估该目标威胁并生成处置建议（必须考虑平民安全）",
+    "expected_tool_calls": [
+      "query_kb(entity_type='drone', query='改装工业无人机')",
+      "query_kb(entity_type='terrain', query='市区商业区')",
+      "run_topsis(target_id='T005')",
+      "check_devices()"
+    ],
+    "expected_output": {
+      "threat_assessment": {
+        "threat_score": 0.65,
+        "threat_level": 4,
+        "confidence": 0.72,
+        "key_factors": ["禁飞区入侵", "不明载荷", "平民区上空", "意图不明"],
+        "uncertainty_flags": ["平民区临近", "未知型号", "数据不完整"]
+      },
+      "recommended_action": {
+        "action_type": "导航诱骗",
+        "priority": 1,
+        "parameters": {"force_landing_zone": "指定安全区域"},
+        "expected_effect": "通过GNSS诱骗引导目标飞离平民区至安全区域迫降",
+        "alternative_actions": [
+          {"action_type": "选择性干扰", "reason": "若干扰可控范围，可切断遥控链路"},
+          {"action_type": "网捕", "reason": "如目标降低高度至100m以内"}
+        ]
+      },
+      "remarks": "严禁在此场景使用硬杀伤手段。激光、微波、动能武器均可能造成地面人员伤亡和财产损失。建议协调地面警力疏散人群后采取网捕方案。"
+    }
+  },
+  {
+    "id": 6,
+    "title": "FPV竞速无人机 + 关键区域 → 威胁4 + 5.8GHz特定干扰",
+    "situation_summary": "雷达捕获高速小型目标（速度45m/s，RCS极小），飞行轨迹呈FPV竞速特征（急转、俯冲、加速），光电追踪确认5.8GHz高清图传信号。目标正接近军事基地弹药仓库区。",
+    "task": "评估FPV竞速无人机对关键设施的威胁并生成处置建议",
+    "expected_tool_calls": [
+      "query_kb(entity_type='drone', query='FPV竞速无人机')",
+      "run_topsis(target_id='T006')",
+      "search_rules(query='FPV 关键设施')",
+      "check_devices(device_type='干扰器')"
+    ],
+    "expected_output": {
+      "threat_assessment": {
+        "threat_score": 0.82,
+        "threat_level": 4,
+        "confidence": 0.87,
+        "key_factors": ["高速机动", "小RCS难侦测", "接近弹药库", "FPV攻击特征"],
+        "uncertainty_flags": ["信号异常"]
+      },
+      "recommended_action": {
+        "action_type": "选择性干扰",
+        "priority": 1,
+        "devices": ["jammer_5g8_highpower_01"],
+        "parameters": {"target_band": "5.8GHz", "power_level": "max", "beam_width": "narrow"},
+        "expected_effect": "精确干扰5.8GHz图传信号，使FPV操作员失去画面引导"
+      }
+    }
+  },
+  {
+    "id": 7,
+    "title": "多威胁 + 资源不足 → 优先级排序",
+    "situation_summary": "同时发现3个无人机目标：T007A（高速接近指挥部，距离2km），T007B（在通信塔附近盘旋，距离5km），T007C（刚进入警戒圈，速度慢，距离15km）。可用干扰设备仅2台（其中1台正在维护）。",
+    "task": "评估三个目标威胁并生成优先级排序的处置方案",
+    "expected_tool_calls": [
+      "run_topsis(target_id='T007A')",
+      "run_topsis(target_id='T007B')",
+      "run_topsis(target_id='T007C')",
+      "check_devices()",
+      "search_rules(query='多目标 资源调度 优先级')"
+    ],
+    "expected_output": {
+      "threat_assessment": {
+        "threat_score": 0.90,
+        "threat_level": 5,
+        "confidence": 0.82,
+        "key_factors": ["多目标并行", "资源不足", "高价值目标受威胁"],
+        "uncertainty_flags": ["多目标"]
+      },
+      "recommended_action": {
+        "action_type": "全频段压制",
+        "priority": 1,
+        "devices": ["jammer_main_01"],
+        "parameters": {"primary_target": "T007A", "coverage": "指挥部方向120deg"},
+        "expected_effect": "优先压制最高威胁目标T007A，次要关注T007B",
+        "alternative_actions": [
+          {"action_type": "选择性干扰", "reason": "对T007B使用定向干扰，节省资源"}
+        ]
+      },
+      "remarks": "T007A威胁最高，建议优先处置。T007B次之（通信设施敏感）。T007C距离远，威胁最低，暂为监测。建议向指挥中心申请增派设备支援。"
+    }
+  },
+  {
+    "id": 8,
+    "title": "未知信号+信号异常+高度骤降 → 复合威胁",
+    "situation_summary": "雷达跟踪目标已持续20分钟，初期为正常巡航模式（高度500m，速度15m/s）。近2分钟出现异常：高度骤降至80m，速度增至28m/s，同时检测到此前未见的新频谱信号（疑似跳频通信）。目标方向对准我方指挥所。",
+    "task": "评估急剧行为变化的目标威胁并生成紧急处置建议",
+    "expected_tool_calls": [
+      "query_kb(entity_type='drone', query='未知信号 跳频通信')",
+      "query_kb(entity_type='scenario', query='攻击前行为模式')",
+      "run_topsis(target_id='T008')",
+      "search_rules(query='行为突变 俯冲 指挥所')",
+      "check_devices()"
+    ],
+    "expected_output": {
+      "threat_assessment": {
+        "threat_score": 0.96,
+        "threat_level": 5,
+        "confidence": 0.78,
+        "key_factors": ["行为剧烈突变", "高度骤降", "新增跳频信号", "指向指挥所"],
+        "uncertainty_flags": ["信号异常", "未知型号", "传感器冲突"]
+      },
+      "recommended_action": {
+        "action_type": "全频段压制",
+        "priority": 1,
+        "devices": ["full_band_jammer_all"],
+        "parameters": {"power_level": "emergency_max", "duration": "until_threat_ceased"},
+        "expected_effect": "立即启动最大功率全频段压制，破坏目标通信和制导能力"
+      },
+      "remarks": "行为模式的急剧变化是攻击前兆的强信号。虽然置信度不足0.8，但鉴于目标指向指挥所，建议以最高威胁等级对待。这是典型的'观察→加速→俯冲'攻击模式。"
+    }
+  },
+  {
+    "id": 9,
+    "title": "低信噪比传感器 → 保守估计（更高威胁假设）",
+    "situation_summary": "雷达在边界方向捕获间断性回波信号，SNR仅3dB（极低），目标信息碎片化。5次扫描中仅3次有效回波。根据碎片数据估算：距离约8km，方向角120-130deg不稳定，速度估算25-40m/s（误差范围大）。光学设备受雾霾影响未能提供辅助确认。",
+    "task": "在传感器数据质量差的情况下评估威胁并生成保守建议",
+    "expected_tool_calls": [
+      "query_kb(entity_type='em_environment', query='低SNR 雾霾')",
+      "run_topsis(target_id='T009')",
+      "search_rules(query='传感器低质量 保守估计')"
+    ],
+    "expected_output": {
+      "threat_assessment": {
+        "threat_score": 0.60,
+        "threat_level": 4,
+        "confidence": 0.35,
+        "key_factors": ["低信噪比SNR", "数据碎片化", "速度估算偏高", "光学确认失败"],
+        "uncertainty_flags": ["低信噪比", "数据不完整", "信号异常"]
+      },
+      "recommended_action": {
+        "action_type": "全频段压制",
+        "priority": 2,
+        "expected_effect": "在信息不足的情况下采取预防性压制，争取时间获取更多数据",
+        "alternative_actions": [
+          {"action_type": "监测", "reason": "如指挥员判断风险可接受，可继续监测等待更多数据"}
+        ]
+      },
+      "remarks": "传感器数据质量极差（SNR仅3dB），威胁评分受限于可用数据。根据'信息不足时倾向于高估威胁'原则，建议按威胁等级4（高）处置。建议指挥部优先改善该方向的传感器覆盖或派出机动侦察单元。"
+    }
+  },
+  {
+    "id": 10,
+    "title": "GNSS诱骗防护目标 → 激光为主要手段",
+    "situation_summary": "检测到目标具备GNSS抗诱骗能力（军用级加密导航模块 + 惯性导航辅助），传统GNSS诱骗手段预期无效。目标距离4km，高度300m，速度10m/s，天气晴朗，视线条件良好。已识别为已知的某国侦察型无人机。",
+    "task": "评估GNSS诱骗无效的目标威胁并生成替代处置建议",
+    "expected_tool_calls": [
+      "query_kb(entity_type='drone', query='GNSS抗诱骗 军用侦察无人机')",
+      "run_topsis(target_id='T010')",
+      "search_rules(query='抗诱骗 激光摧毁')",
+      "check_devices(device_type='激光')"
+    ],
+    "expected_output": {
+      "threat_assessment": {
+        "threat_score": 0.75,
+        "threat_level": 4,
+        "confidence": 0.85,
+        "key_factors": ["已知侦察型号", "抗GNSS诱骗", "中等距离", "晴朗天气"],
+        "uncertainty_flags": []
+      },
+      "recommended_action": {
+        "action_type": "激光摧毁",
+        "priority": 1,
+        "devices": ["laser_high_energy_01"],
+        "parameters": {"tracking_mode": "光电锁定", "dwell_time_seconds": 3},
+        "expected_effect": "利用良好视线条件，激光精确毁伤目标关键部件",
+        "alternative_actions": [
+          {"action_type": "全频段压制", "reason": "虽然GNSS诱骗无效，但RF干扰仍可尝试阻断通信和数据链"},
+          {"action_type": "网捕", "reason": "如目标进一步接近至1km内"}
+        ]
+      },
+      "remarks": "目标明确标明具备抗GNSS诱骗能力，导航诱骗方案排除。但RF干扰对通信链路仍然有效。激光摧毁在晴朗天气下是最可靠方案。"
+    }
+  },
+  {
+    "id": 11,
+    "title": "固定翼大型无人机 + 远距侦察 → 威胁3 + 定向干扰",
+    "situation_summary": "光电/雷达协同追踪一架翼展约4m的固定翼无人机，高度800m，巡航速度22m/s，沿防线做往复侦察航线。距离核心区域6km，未检测到武器挂载信号。2.4GHz遥控信号 + 1.2GHz数传信号特征明显。",
+    "task": "评估固定翼侦察型无人机威胁并生成处置建议",
+    "expected_tool_calls": [
+      "query_kb(entity_type='drone', query='固定翼 侦察 1.2GHz数传')",
+      "run_topsis(target_id='T011')",
+      "search_rules(query='侦察无人机 防线巡逻')",
+      "check_devices(device_type='干扰器')"
+    ],
+    "expected_output": {
+      "threat_assessment": {
+        "threat_score": 0.48,
+        "threat_level": 3,
+        "confidence": 0.82,
+        "key_factors": ["侦察航线", "固定翼长航时", "未挂载武器", "距离6km中等"],
+        "uncertainty_flags": []
+      },
+      "recommended_action": {
+        "action_type": "选择性干扰",
+        "priority": 3,
+        "devices": ["directional_jammer_2g4", "directional_jammer_1g2"],
+        "parameters": {"target_bands": ["1.2GHz", "2.4GHz"], "antenna_mode": "directional"},
+        "expected_effect": "定向干扰数传和遥控信号，中断其侦察任务"
+      }
+    }
+  },
+  {
+    "id": 12,
+    "title": "夜间不明飞行物 + 红外信号微弱 → 威胁4 + 监测加强",
+    "situation_summary": "凌晨2时，红外传感器在仓库区西北角捕获微弱红外信号（温差仅3°C），雷达未能形成稳定航迹。目标缓慢移动（约2m/s），高度估测50-80m。目标为夜间、低可探测性飞行物，无法确定是无人机还是飞鸟/蝙蝠。",
+    "task": "评估夜间低可探测性目标的威胁并生成处置建议",
+    "expected_tool_calls": [
+      "query_kb(entity_type='em_environment', query='夜间 低红外特征')",
+      "query_kb(entity_type='terrain', query='仓库区')",
+      "run_topsis(target_id='T012')",
+      "search_rules(query='夜间 不明飞行物 仓库')"
+    ],
+    "expected_output": {
+      "threat_assessment": {
+        "threat_score": 0.60,
+        "threat_level": 4,
+        "confidence": 0.40,
+        "key_factors": ["夜间渗透", "低可探测性", "接近仓库区", "传感器确认困难"],
+        "uncertainty_flags": ["低信噪比", "未知型号", "数据不完整", "传感器冲突"]
+      },
+      "recommended_action": {
+        "action_type": "监测",
+        "priority": 1,
+        "parameters": {"enhanced_sensors": ["红外广域", "声学阵列", "雷达高灵敏度模式"]},
+        "expected_effect": "切换传感器模式以提高探测概率，同时派出机动巡逻组确认",
+        "alternative_actions": [
+          {"action_type": "全频段压制", "reason": "如确认为无人机且进入1km范围后可启动"}
+        ]
+      },
+      "remarks": "目标特征极弱，存在是飞鸟等非威胁目标的可能。不建议立即使用干扰（避免暴露电子战部署位置）。建议加强传感器融合探测并派出地面巡逻确认。"
+    }
+  },
+  {
+    "id": 13,
+    "title": "多旋翼 + 系留载荷 → 威胁5 + 紧急全手段响应",
+    "situation_summary": "大型六旋翼（翼展2m）在集会广场上方80m处悬停，下方悬吊一不明包裹（疑似IED或宣传品投放装置）。广场正在举办大型公共活动，人员密度极高（约5000人）。警方已启动疏散但需时间。",
+    "task": "评估公共活动中悬挂不明载荷无人机的威胁并生成紧急处置建议",
+    "expected_tool_calls": [
+      "query_kb(entity_type='drone', query='大型六旋翼 系留载荷')",
+      "query_kb(entity_type='scenario', query='大型公共活动 空中威胁')",
+      "query_kb(entity_type='terrain', query='城市广场 人群密集')",
+      "run_topsis(target_id='T013')",
+      "search_rules(query='人群密集 不明载荷')",
+      "check_devices()"
+    ],
+    "expected_output": {
+      "threat_assessment": {
+        "threat_score": 1.0,
+        "threat_level": 5,
+        "confidence": 0.78,
+        "key_factors": ["悬挂不明载荷", "人群极度密集", "恐袭嫌疑", "低空悬停"],
+        "uncertainty_flags": ["平民区临近", "数据不完整"]
+      },
+      "recommended_action": {
+        "action_type": "导航诱骗",
+        "priority": 1,
+        "devices": ["gnss_spoofer_portable_01"],
+        "parameters": {"force_landing": "广场外围安全隔离区", "mode": "紧急迫降"},
+        "expected_effect": "通过GNSS诱骗引导无人机飞至安全区降落，避免在人群上方爆炸或坠落",
+        "alternative_actions": [
+          {"action_type": "网捕", "reason": "如高度允许可尝试网捕捕获载荷"},
+          {"action_type": "全频段压制", "reason": "作为最后手段，但可能导致无人机失控坠落造成伤亡"}
+        ]
+      },
+      "remarks": "极端敏感场景。任何导致无人机失控坠落的方案（干扰）均可能造成重大人员伤亡。GNSS诱骗引导至安全区是唯一的安全选项。请立即协调警方加速疏散，并调用排爆单位待命。这是反恐级别响应。"
+    }
+  },
+  {
+    "id": 14,
+    "title": "察打一体无人机 + 激光导引 → 复合防御",
+    "situation_summary": "目标确认为某国'TB-2'型察打一体无人机（数据库已有），携带两枚小型激光制导弹药。雷达跟踪显示目标正对高价值防空阵地进行照射锁定（检测到激光测距/照射信号）。距离5km，高度4000m，速度35m/s。",
+    "task": "评估察打一体武装无人机的直接攻击威胁并生成紧急防御建议",
+    "expected_tool_calls": [
+      "query_kb(entity_type='drone', query='TB-2 察打一体 激光制导')",
+      "run_topsis(target_id='T014')",
+      "search_rules(query='武装无人机 激光锁定 防空阵地')",
+      "check_devices()"
+    ],
+    "expected_output": {
+      "threat_assessment": {
+        "threat_score": 0.98,
+        "threat_level": 5,
+        "confidence": 0.94,
+        "key_factors": ["武装攻击型", "激光照射锁定", "瞄准防空阵地", "弹药已挂载"],
+        "uncertainty_flags": []
+      },
+      "recommended_action": {
+        "action_type": "全频段压制",
+        "priority": 1,
+        "devices": ["full_band_jammer_hp", "laser_dazzler_01"],
+        "parameters": {
+          "jam_bands": ["all"],
+          "laser_countermeasure": "dazzle_seeker",
+          "deploy_smoke": true
+        },
+        "expected_effect": "全频段压制切断数据链和GPS，激光致盲干扰导引头，烟幕阻断激光照射",
+        "alternative_actions": [
+          {"action_type": "激光摧毁", "reason": "如具备硬杀伤激光系统，可直接摧毁目标"},
+          {"action_type": "硬杀伤", "reason": "如防空导弹可用，在确认威胁后予以击落"}
+        ]
+      },
+      "remarks": "最高威胁等级，目标正在进行攻击前锁定。建议'干扰+致盲+烟幕'复合防御，并立即通知防空阵地转移或启动主动防御系统。"
+    }
+  },
+  {
+    "id": 15,
+    "title": "无人机 + 地形遮蔽 + 突现 → 威胁快速升级",
+    "situation_summary": "目标利用山谷地形进行低空突防（贴地飞行，高度30-50m），此前雷达因地形遮蔽未能探测。目标突现于防线内侧3km处（已穿透第一道警戒线），正向油料储存区方向飞行。目标小型（翼展<1m），高速（40m/s），疑似巡飞弹/自杀式无人机。",
+    "task": "评估利用地形遮蔽突防的目标威胁并生成紧急处置建议",
+    "expected_tool_calls": [
+      "query_kb(entity_type='drone', query='巡飞弹 自杀式无人机')",
+      "query_kb(entity_type='terrain', query='山谷 地形遮蔽 低空突防')",
+      "run_topsis(target_id='T015')",
+      "search_rules(query='突防 油料库 巡飞弹')",
+      "check_devices()"
+    ],
+    "expected_output": {
+      "threat_assessment": {
+        "threat_score": 0.99,
+        "threat_level": 5,
+        "confidence": 0.88,
+        "key_factors": ["已穿透防线", "地形遮蔽突防", "自杀式特征", "指向油料库"],
+        "uncertainty_flags": ["数据不完整"]
+      },
+      "recommended_action": {
+        "action_type": "硬杀伤",
+        "priority": 1,
+        "devices": ["ciws_01", "laser_defense_01", "full_band_jammer_01"],
+        "parameters": {"engagement_mode": "auto_authorized", "all_means": true},
+        "expected_effect": "授权使用所有可用手段，优先使用近防系统和激光进行末端拦截",
+        "alternative_actions": [
+          {"action_type": "全频段压制", "reason": "作为并行手段，干扰其末端制导"}
+        ]
+      },
+      "remarks": "紧急！目标已穿透防线并对关键设施构成直接攻击威胁。建议指挥官授权自动拦截模式，动用所有可用硬杀伤和软杀伤手段。油料库被命中将引发灾难性后果。"
+    }
+  }
+]

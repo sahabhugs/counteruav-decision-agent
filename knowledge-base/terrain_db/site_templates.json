@@ -1,0 +1,117 @@
+[
+  {
+    "terrain_type": "urban",
+    "terrain_name_cn": "城市环境",
+    "radar_clutter_level": "HIGH",
+    "optical_visibility_km": 3,
+    "multipath_risk": "HIGH",
+    "recommended_radar_params": {
+      "min_range_m": 30,
+      "max_range_m": 3000,
+      "scan_rate_rpm": 60,
+      "sensitivity_db": -95,
+      "doppler_filter": "ADAPTIVE",
+      "cfar_threshold_db": 16
+    },
+    "recommended_eo_params": {
+      "ir_mode": "DUAL",
+      "zoom_level": "1X-120X",
+      "tracking_mode": "correlation",
+      "frame_rate_fps": 60
+    },
+    "jamming_power_adjustment_factor": 1.5,
+    "notes": "城市环境雷达杂波极高，建筑物产生大量虚假回波和盲区。多路径效应严重，GPS定位可靠性下降。光学能见度受建筑遮挡限制至约3km。雷达需启用自适应多普勒滤波以区分移动无人机和静态建筑回波。CFAR门限需提高至16dB以控制虚警率。光电传感器需高倍变焦和双波段红外以适应温差复杂的城市热背景。干扰功率需提升50%以穿透建筑物衰减和应对复杂的多路径传播环境。建议部署分布式小型雷达节点而非单一大型雷达。"
+  },
+  {
+    "terrain_type": "mountain",
+    "terrain_name_cn": "山地环境",
+    "radar_clutter_level": "MEDIUM",
+    "optical_visibility_km": 8,
+    "multipath_risk": "HIGH",
+    "recommended_radar_params": {
+      "min_range_m": 50,
+      "max_range_m": 8000,
+      "scan_rate_rpm": 30,
+      "sensitivity_db": -100,
+      "doppler_filter": "ADAPTIVE",
+      "cfar_threshold_db": 14
+    },
+    "recommended_eo_params": {
+      "ir_mode": "MWIR",
+      "zoom_level": "1X-60X",
+      "tracking_mode": "centroid",
+      "frame_rate_fps": 30
+    },
+    "jamming_power_adjustment_factor": 1.2,
+    "notes": "山地地形起伏大，雷达遮挡问题严重，需将雷达部署在制高点以最小化盲区。地形反射造成强多路径干扰，山谷中可能出现反常传播。光学能见度在山脊间可达8km以上。中波红外（MWIR）穿透山间雾气能力优于长波红外。多普勒滤波需适应地形引起的杂波频谱展宽。雷达天线仰角需精心设置以覆盖山谷和山脊线。干扰功率需略微提升以应对地形遮挡和山谷中的多路径衰落。"
+  },
+  {
+    "terrain_type": "coastal",
+    "terrain_name_cn": "沿海环境",
+    "radar_clutter_level": "LOW",
+    "optical_visibility_km": 12,
+    "multipath_risk": "HIGH",
+    "recommended_radar_params": {
+      "min_range_m": 50,
+      "max_range_m": 15000,
+      "scan_rate_rpm": 15,
+      "sensitivity_db": -110,
+      "doppler_filter": "ADAPTIVE",
+      "cfar_threshold_db": 10
+    },
+    "recommended_eo_params": {
+      "ir_mode": "MWIR",
+      "zoom_level": "1X-60X",
+      "tracking_mode": "centroid",
+      "frame_rate_fps": 30
+    },
+    "jamming_power_adjustment_factor": 0.8,
+    "notes": "沿海/海上环境雷达杂波极低（海杂波在低海况下），探测距离可达15km。但海面蒸发波导效应可同时增强（超视距传播）和干扰（反常传播路径）雷达性能。多路径效应主要来自海面反射，对低空目标影响显著。高湿度和盐雾对EO/IR传感器透光率有影响，需使用防护涂层和定期清洁。干扰功率可适当降低20%，因为海面开阔、无遮挡衰减，且蒸发波导可增强干扰信号传播距离。需要注意对海上合法通信和导航设备的电磁干扰影响。"
+  },
+  {
+    "terrain_type": "desert",
+    "terrain_name_cn": "沙漠环境",
+    "radar_clutter_level": "LOW",
+    "optical_visibility_km": 20,
+    "multipath_risk": "LOW",
+    "recommended_radar_params": {
+      "min_range_m": 100,
+      "max_range_m": 20000,
+      "scan_rate_rpm": 10,
+      "sensitivity_db": -115,
+      "doppler_filter": "OFF",
+      "cfar_threshold_db": 8
+    },
+    "recommended_eo_params": {
+      "ir_mode": "LWIR",
+      "zoom_level": "1X-120X",
+      "tracking_mode": "edge",
+      "frame_rate_fps": 30
+    },
+    "jamming_power_adjustment_factor": 0.7,
+    "notes": "沙漠环境是反无人机传感器的最理想工作环境。极低的地面杂波、几乎无多路径反射、超远光学能见度（20km以上）。雷达可关闭多普勒滤波（无地面移动杂波），CFAR门限降至8dB以获得最大探测灵敏度，探测距离可达20km。沙尘暴时性能急剧下降，需切换到长波红外（LWIR）穿透沙尘。高温环境对传感器散热提出要求。干扰功率可最大幅度降低30%，因环境传播损耗极小。主要挑战是沙尘对设备的磨损和高温导致的电子设备降额。"
+  },
+  {
+    "terrain_type": "forest",
+    "terrain_name_cn": "森林环境",
+    "radar_clutter_level": "HIGH",
+    "optical_visibility_km": 1,
+    "multipath_risk": "MEDIUM",
+    "recommended_radar_params": {
+      "min_range_m": 20,
+      "max_range_m": 2000,
+      "scan_rate_rpm": 60,
+      "sensitivity_db": -90,
+      "doppler_filter": "ON",
+      "cfar_threshold_db": 18
+    },
+    "recommended_eo_params": {
+      "ir_mode": "DUAL",
+      "zoom_level": "1X-30X",
+      "tracking_mode": "correlation",
+      "frame_rate_fps": 60
+    },
+    "jamming_power_adjustment_factor": 1.3,
+    "notes": "森林环境对反无人机传感器极具挑战。浓密树冠严重遮挡光学和红外视线，能见度仅约1km。风动树枝产生大量雷达杂波和虚警——多普勒滤波器必须开启以过滤慢速树枝摆动（通常<3m/s），但可能同时过滤掉悬停无人机。雷达需高转速（60rpm）和快速更新率来捕捉树冠间歇中暴露的短暂目标。CFAR门限需提高到18dB以控制树枝杂波虚警。干扰信号被树冠散射和吸收，需要提高30%功率补偿。声学传感器在森林中效果较好，建议作为补充探测手段。"
+  }
+]

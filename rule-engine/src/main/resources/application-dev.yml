@@ -1,0 +1,129 @@
+# ============================================================
+# 反无人机决策规则引擎 - 开发环境配置 (dev profile)
+# ============================================================
+# 使用方式: --spring.profiles.active=dev
+# 此配置使用H2嵌入式数据库，无需安装MySQL
+
+server:
+  port: 8080
+
+# ============================================================
+# H2 嵌入式数据库配置（开发环境，替代MySQL）
+# ============================================================
+spring:
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: org.h2.Driver
+    # H2文件模式：数据保存在 ./data/rule_engine_db 目录
+    url: jdbc:h2:file:./data/rule_engine_db;AUTO_SERVER=TRUE;MODE=MySQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+
+  # H2 Web Console（浏览器访问 http://localhost:8080/h2-console）
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        web-allow-others: false
+
+  # Jackson 配置
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+    default-property-inclusion: non_null
+
+  # ============================================================
+  # 开发环境：禁用Druid（使用H2的基本连接池）
+  # ============================================================
+  autoconfigure:
+    exclude:
+      - com.alibaba.druid.spring.boot.autoconfigure.DruidDataSourceAutoConfigure
+
+# ============================================================
+# Druid 连接池配置（开发环境精简版）
+# ============================================================
+druid:
+  initial-size: 2
+  min-idle: 2
+  max-active: 10
+  max-wait: 30000
+  validation-query: SELECT 1
+
+# ============================================================
+# MyBatis-Plus 配置
+# ============================================================
+mybatis-plus:
+  type-aliases-package: com.counteruav.entity
+  mapper-locations: classpath*:mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    cache-enabled: true
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# ============================================================
+# LLM Agent 配置
+# ============================================================
+llm:
+  agent:
+    base-url: http://localhost:8001
+    connect-timeout: 30000
+    read-timeout: 60000
+
+# ============================================================
+# CounterUAV 业务配置
+# ============================================================
+counteruav:
+  llm:
+    agent-url: http://localhost:8001
+    rate-limit:
+      max-calls-per-minute: 10
+      cooldown-ms: 5000
+      max-calls-per-target: 3
+  confidence:
+    threshold: 0.80
+
+# ============================================================
+# Drools 规则引擎配置
+# ============================================================
+drools:
+  rule:
+    base-path: classpath:rules/
+    l1-path: classpath:rules/l1-physics/
+    l2-path: classpath:rules/l2-doctrine/
+    l3-path: classpath:rules/l3-tactical/
+    l4-path: classpath:rules/l4-learning/
+    hot-reload-enabled: true
+
+# ============================================================
+# 决策引擎配置
+# ============================================================
+decision:
+  confidence-threshold: 0.80
+
+rate-limit:
+  max-calls-per-minute: 10
+  cooldown-ms: 5000
+  max-calls-per-target: 3
+
+# ============================================================
+# 日志配置
+# ============================================================
+logging:
+  level:
+    root: INFO
+    com.counteruav: DEBUG
+    com.alibaba.druid: WARN
+    com.baomidou.mybatisplus: DEBUG
+    org.drools: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
+  file:
+    path: ./logs
+    name: ${logging.file.path}/rule-engine.log

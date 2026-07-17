@@ -1,0 +1,122 @@
+[
+  {
+    "source_id": "emi-001",
+    "source_name": "WiFi 2.4GHz接入点",
+    "source_type": "civilian",
+    "frequency_range_mhz": [2400, 2483.5],
+    "typical_power_dbm": 20,
+    "modulation": "OFDM (802.11b/g/n/ax), 20/40MHz带宽，CSMA/CA信道接入",
+    "impact_on_detection": "HIGH",
+    "impact_on_jamming": "LOW",
+    "mitigation_strategy": "使用协议识别区分WiFi信标与无人机信号；重点监控非802.11帧结构的FHSS/OcuSync信号；在WiFi密集区域提高RF探测触发门限以降低虚警率；使用MAC地址白名单过滤已知WiFi接入点",
+    "notes": "2.4GHz WiFi接入点是城市环境中最普遍的干扰源。密集城区可检测到数百个WiFi AP信号，使无人机的2.4GHz通信信号淹没在WiFi噪声中。无人机使用的FHSS/OcuSync协议与WiFi的CSMA/CA在频谱占用模式上有本质区别——前者为周期性跳频，后者为突发分组传输。通过协议指纹可有效区分。WiFi AP对干扰设备影响小，因干扰机发射功率（20W=43dBm）远大于WiFi AP（20dBm）。"
+  },
+  {
+    "source_id": "emi-002",
+    "source_name": "WiFi 5GHz接入点",
+    "source_type": "civilian",
+    "frequency_range_mhz": [5150, 5850],
+    "typical_power_dbm": 23,
+    "modulation": "OFDM (802.11a/n/ac/ax), 20/40/80/160MHz带宽，DFS动态信道选择",
+    "impact_on_detection": "MEDIUM",
+    "impact_on_jamming": "LOW",
+    "mitigation_strategy": "利用5.8GHz ISM频段（5725-5875）与UNII-1/2A/2C频段的频谱分离特性，重点监测无人机优先使用的5.8GHz区域；5GHz WiFi AP在5.8GHz ISM频段使用较少（优先级低于UNII频段），可通过信道化检测排除",
+    "notes": "5GHz WiFi AP主要集中在UNII-1（5.15-5.25GHz）和UNII-3（5.725-5.85GHz与5.8GHz ISM重叠）。虽然5.8GHz ISM频段有WiFi使用，但无人机视频信号以模拟FM和数字OFDM（如DJI FPV 25Mbps）为主，频谱特征与WiFi明显不同。DFS机制使UNII-2频段的WiFi使用具有时变性。5GHz频段整体干扰环境比2.4GHz清洁，RF探测虚警率较低。"
+  },
+  {
+    "source_id": "emi-003",
+    "source_name": "4G LTE基站",
+    "source_type": "civilian",
+    "frequency_range_mhz": [700, 2600],
+    "typical_power_dbm": 43,
+    "modulation": "OFDMA (LTE), 1.4/3/5/10/15/20MHz载波带宽，MIMO 2x2/4x4，TDD/FDD双工",
+    "impact_on_detection": "HIGH",
+    "impact_on_jamming": "LOW",
+    "mitigation_strategy": "4G LTE工作频段与无人机常用频段（2.4/5.8GHz）不重叠，对RF探测传感器频带外抑制要求高——确保RF前端滤波器对<2GHz信号的抑制>60dB；定期进行现场电磁环境测绘，标注LTE基站位置和功率；使用频带选择性RF探测而非宽带能量检测",
+    "notes": "4G LTE基站在700MHz-2.6GHz频段工作，理论上不与2.4/5.8GHz无人机频段重叠。但高功率基站（43dBm, 20W）的带外辐射和谐波可能通过RF前端非线性产生虚假告警。塔顶LTE天线辐射功率大，对近距离部署的RF探测设备前级放大器可能造成饱和。需确保RF探测前端具有足够的动态范围和带外抑制能力（>80dB）。在基站附近（<100m）部署时建议增加限幅器和带通滤波器。"
+  },
+  {
+    "source_id": "emi-004",
+    "source_name": "5G NR基站",
+    "source_type": "civilian",
+    "frequency_range_mhz": [3300, 4200],
+    "typical_power_dbm": 40,
+    "modulation": "OFDMA (5G NR), 5/10/15/20/40/50/60/80/100MHz载波带宽，Massive MIMO 64T64R波束成形",
+    "impact_on_detection": "MEDIUM",
+    "impact_on_jamming": "MEDIUM",
+    "mitigation_strategy": "5G NR C-band（3.3-4.2GHz）与C-band SATCOM频段直接重叠——需使用到达角（AoA）估计区分地面5G信号和空中SATCOM信号（多普勒频移特征不同）；部署前进行5G NR站点电磁环境测绘，建立站点位置和波束指向数据库；使用协议分析排除5G NR帧结构信号",
+    "notes": "5G NR C-band大规模部署后，其频段（3.3-4.2GHz）与无人机C-band SATCOM下行（3.7-4.2GHz）直接重叠。在进行无人机SATCOM通信监测和干扰时，5G NR基站信号是最主要的混淆源。Massive MIMO在空间上形成高增益窄波束，在特定方向上的功率密度可能超过无人机SATCOM信号。需要使用到达角（AoA）估计和协议分析来区分地面5G信号和空中SATCOM信号。"
+  },
+  {
+    "source_id": "emi-005",
+    "source_name": "广播电视发射塔",
+    "source_type": "civilian",
+    "frequency_range_mhz": [54, 806],
+    "typical_power_dbm": 60,
+    "modulation": "FM/AM模拟广播, DVB-T/ATSC数字电视 (OFDM), 6/7/8MHz信道带宽，有效辐射功率可达100kW",
+    "impact_on_detection": "HIGH",
+    "impact_on_jamming": "LOW",
+    "mitigation_strategy": "广播电视频段（VHF/UHF 54-806MHz）与433MHz无人机控制频段部分重叠——433MHz频段监测需排除本地广播信号谐波；广播发射塔功率极大，其谐波和互调产物可能落入无人机频段；使用频谱预扫描建立本地广播信号基线，在实时监测中减去已知广播信号；在<2km距离部署时使用预选滤波器",
+    "notes": "广播电视发射塔是城市周边最强大的连续波辐射源，有效辐射功率可达1kW-100kW。基波在VHF/UHF频段不直接影响无人机频段，但发射机非线性可能产生谐波落入433MHz甚至2.4GHz频段。更重要的是，大功率发射塔附近的所有RF接收设备前端都可能被推向非线性工作区，产生互调产物和灵敏度下降。"
+  },
+  {
+    "source_id": "emi-006",
+    "source_name": "雷达站",
+    "source_type": "military",
+    "frequency_range_mhz": [2000, 10000],
+    "typical_power_dbm": 90,
+    "modulation": "脉冲调制，线性/非线性调频，重频300-3000Hz，脉宽0.1-100us，峰值功率可达MW级",
+    "impact_on_detection": "HIGH",
+    "impact_on_jamming": "HIGH",
+    "mitigation_strategy": "雷达脉冲是RF探测最具挑战的干扰源——峰值功率MW级可使接收机前端饱和或损坏。对策：1）接收机前端使用PIN二极管限幅器和快速恢复LNA；2）时域消隐（Blanking）在雷达脉冲期间关闭接收机；3）跳频到雷达工作频率以外的频段进行探测；4）PRF滤波器识别并抑制雷达脉冲模式；5）与己方雷达协调获取触发同步信号实现同步消隐",
+    "notes": "雷达站是反无人机RF探测系统面临的最严峻干扰挑战。S波段（2-4GHz）、C波段（4-8GHz）和X波段（8-12GHz）雷达的峰值功率可达1MW（90dBm），即使在数公里外也能使灵敏的RF探测接收机前端饱和或永久损坏。无人机FHSS协议信号（<1W）在雷达脉冲面前完全不可见。RF探测系统在雷达附近必须采用时域消隐、频谱凹口滤波和前端保护的综合方案。"
+  },
+  {
+    "source_id": "emi-007",
+    "source_name": "高压输电线路",
+    "source_type": "industrial",
+    "frequency_range_mhz": [0.1, 500],
+    "typical_power_dbm": 30,
+    "modulation": "宽带脉冲噪声，电晕放电产生，随机脉冲间隔，幅度随湿度和温度变化，工频磁场50/60Hz",
+    "impact_on_detection": "MEDIUM",
+    "impact_on_jamming": "LOW",
+    "mitigation_strategy": "高压输电线路的电磁干扰主要集中在低频段（<100MHz），对无人机通信频段（>433MHz）直接影响较小。但电晕放电的宽带脉冲噪声可能在RF探测的宽带检测模式下被误判。对策：1）使用频带选择性检测（仅监控无人机频段）；2）避开高压线路正下方部署传感器；3）时域脉冲宽度鉴别（电晕脉冲ns-us级 vs 无人机信号ms级）；4）使用统计学习的异常检测替代固定阈值",
+    "notes": "高压输电线路（>110kV）的电晕放电产生从DC到VHF的宽带电磁噪声。在干燥天气下影响较小，但在潮湿、雾天或线路老化时噪声显著增强。50/60Hz工频磁场对传感器电子设备可能产生耦合干扰，导致敏感模拟前端出现工频哼声。传感器供电应使用良好的电源滤波和屏蔽措施。在输电线路走廊（<100m）部署RF探测设备时，场地适配和校准必不可少。"
+  },
+  {
+    "source_id": "emi-008",
+    "source_name": "太阳射电爆发",
+    "source_type": "natural",
+    "frequency_range_mhz": [10, 10000],
+    "typical_power_dbm": -90,
+    "modulation": "宽带连续谱噪声，太阳耀斑和日冕物质抛射时增强数个数量级，持续时间分钟至小时级，强度与11年太阳活动周期相关",
+    "impact_on_detection": "MEDIUM",
+    "impact_on_jamming": "LOW",
+    "mitigation_strategy": "太阳射电爆发在太阳活动高峰期可使宽带RF噪声基底上升10-30dB，导致RF探测灵敏度显著下降。对策：1）接入空间天气预报（NOAA SWPC或国家空间天气中心），在太阳活动告警期间自动提高RF探测触发门限；2）使用差分检测策略——比较指向天空和地面的天线，消除太阳背景噪声；3）切换到光学/红外/雷达传感器为主的探测模式；4）太阳活动高峰期放宽RF探测触发条件以避免大量虚警",
+    "notes": "太阳射电爆发是自然电磁干扰中最显著的一种，在11年太阳活动周期的高峰年影响尤其明显。一次强烈的太阳射电爆发（X级耀斑）可在数分钟内使全频段RF噪声基底提高20-30dB。对于依赖RF信号检测和指纹识别的反无人机系统，这将导致探测距离显著缩短（可能从5km降至<1km）。系统设计中应考虑太阳活动周期因子，在太阳活动高峰年制定降级运行预案。"
+  },
+  {
+    "source_id": "emi-009",
+    "source_name": "军事通信干扰",
+    "source_type": "military",
+    "frequency_range_mhz": [20, 6000],
+    "typical_power_dbm": 60,
+    "modulation": "宽带噪声干扰/扫频干扰/灵巧干扰/欺骗干扰，调制方式多样且快速变化，功率可达1kW，可覆盖数GHz带宽",
+    "impact_on_detection": "HIGH",
+    "impact_on_jamming": "HIGH",
+    "mitigation_strategy": "面对敌方军事通信干扰（电子攻击），RF探测面临双重困境：敌方干扰不仅淹没无人机信号，还直接针对我方RF接收机。对策：1）切换到完全被动探测模式——光学、红外、声学传感器组合；2）使用干扰测向（而非通信测向）技术定位敌方干扰源；3）采用LPI（低截获概率）设计的干扰机避免被敌方ESM定位；4）自适应陷波滤波器实时抑制已知干扰频段；5）分布式传感器网络中部分节点可作为诱饵承受干扰，其他节点保持隐蔽探测",
+    "notes": "军事通信干扰是电子战（EW）的核心手段，在强对抗环境中必须预设己方RF探测系统将被部分或完全压制。干扰机通常采用宽带噪声（Barrage）、扫频（Sweep）或灵巧（Smart）干扰策略，覆盖数GHz带宽，功率可达1kW（60dBm）。在此环境下，1mW级别的无人机信号完全没有被检测到的可能。反无人机系统必须有在无RF探测条件下作战的完整预案。"
+  },
+  {
+    "source_id": "emi-010",
+    "source_name": "蓝牙设备",
+    "source_type": "civilian",
+    "frequency_range_mhz": [2400, 2483.5],
+    "typical_power_dbm": 4,
+    "modulation": "GFSK/pi/4-DQPSK/8DPSK (经典蓝牙), GFSK (BLE), 1-2MHz信道带宽, 1600跳/秒 (经典蓝牙), 自适应跳频AFH",
+    "impact_on_detection": "MEDIUM",
+    "impact_on_jamming": "LOW",
+    "mitigation_strategy": "蓝牙设备数量庞大（每个智能手机/手表/耳机都是蓝牙源），但由于功率极低（4dBm=2.5mW），干扰范围有限（<10m）。对策：1）高增益定向天线使RF探测在特定方向具有选择性，自然滤除非威胁方向的蓝牙信号；2）蓝牙1600跳/秒 vs 无人机FHSS约100跳/秒，通过跳频速率分析区分；3）接收机灵敏度门限设置>-80dBm自动排除远距离蓝牙信号；4）物理分离——天线距蓝牙设备>3m",
+    "notes": "蓝牙4.0/5.0（BLE）和经典蓝牙在2.4GHz频段使用自适应跳频（AFH）技术——79个信道（经典蓝牙）或40个信道（BLE）。虽然跳频机制本身与无人机FHSS类似，但跳频速率存在根本差异：经典蓝牙1600跳/秒 vs 无人机OcuSync的约100跳/秒。蓝牙1MHz窄带信道带宽 vs 无人机20-60MHz宽带信号在高分辨率频谱图上明显可辨。"
+  }
+]

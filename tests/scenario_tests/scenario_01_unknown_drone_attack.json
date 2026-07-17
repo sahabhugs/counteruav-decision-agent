@@ -1,0 +1,95 @@
+[
+  {
+    "scenario_id": "sc-integ-001",
+    "name": "单架未知无人机高速突袭指挥中心",
+    "description": "最典型的威胁场景：一架无法识别的无人机以高速逼近防御核心",
+    "input": {
+      "request_id": "integ-001",
+      "timestamp": "2026-07-13T15:00:00Z",
+      "defense_center": {"lat": 39.9042, "lon": 116.4074, "alt_m": 50},
+      "protected_zone": {"center": {"lat": 39.9042, "lon": 116.4074}, "radius_m": 5000},
+      "targets": [
+        {
+          "target_id": "T-UNK-001",
+          "track_id": "TRK-001",
+          "detection_time": "2026-07-13T14:58:00Z",
+          "position": {"lat": 39.9100, "lon": 116.4120, "alt_m": 80},
+          "velocity_ms": 24.0,
+          "heading_deg": 225,
+          "radial_speed_ms": -22.0,
+          "classification": {
+            "drone_type": "unknown",
+            "max_class_confidence": 0.38,
+            "is_evt_open_set": true,
+            "top3_classes": [
+              {"type": "diy_fpv_5inch", "confidence": 0.38},
+              {"type": "military_fixed_wing", "confidence": 0.18},
+              {"type": "consumer_quadcopter", "confidence": 0.12}
+            ]
+          },
+          "threat_behaviors": [
+            {"tag": "RAPID_APPROACH", "severity": 0.95},
+            {"tag": "ALTITUDE_DIVE", "severity": 0.88},
+            {"tag": "SIGNAL_ANOMALY", "severity": 0.72}
+          ],
+          "rf_signature": {
+            "frequency_mhz": 5800,
+            "bandwidth_mhz": 40,
+            "modulation_type": "unknown_digital",
+            "snr_db": 9.0
+          },
+          "is_over_civilian_area": false,
+          "dwell_time_s": 120
+        }
+      ],
+      "available_devices": [
+        {
+          "device_id": "RF-JAM-001",
+          "type": "rf_jammer",
+          "status": "ONLINE",
+          "position": {"lat": 39.9050, "lon": 116.4080, "alt_m": 30},
+          "effective_range_m": 3000,
+          "frequency_coverage": ["400MHz", "900MHz", "1.2GHz", "1.5GHz", "2.4GHz", "5.8GHz"],
+          "max_erp_w": 500,
+          "current_target_id": null
+        },
+        {
+          "device_id": "GNSS-SPOOF-001",
+          "type": "gnss_spoofer",
+          "status": "ONLINE",
+          "position": {"lat": 39.9050, "lon": 116.4080, "alt_m": 30},
+          "effective_range_m": 5000,
+          "supported_constellations": ["GPS", "GLONASS", "BeiDou", "Galileo"],
+          "current_target_id": null
+        },
+        {
+          "device_id": "LASER-001",
+          "type": "laser_destruction",
+          "status": "ONLINE",
+          "position": {"lat": 39.9050, "lon": 116.4080, "alt_m": 30},
+          "effective_range_m": 2000,
+          "current_target_id": null
+        }
+      ],
+      "environment": {
+        "terrain_type": "urban",
+        "weather": "clear",
+        "em_environment_noise_db": -88,
+        "is_night": false
+      },
+      "mode": "auto"
+    }
+  },
+  "expected_output": {
+    "source": "LLM_AGENT",
+    "trigger_reason_contains": "EVT_OPEN_SET",
+    "decision_for_T-UNK-001": {
+      "threat_level": 5,
+      "confidence_below_0.80": true,
+      "needs_human_review": true,
+      "primary_action_contains": "JAMMING",
+      "rule_proposal_suggested": true
+    }
+  }
+}
+]

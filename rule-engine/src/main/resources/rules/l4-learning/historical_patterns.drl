@@ -1,0 +1,113 @@
+package rules.l4_learning;
+
+import com.counteruav.model.*;
+import com.counteruav.model.Target.*;
+import java.util.List;
+import java.util.ArrayList;
+
+// ===== L4学习层规则：历史数据驱动的动态规则调整 =====
+// 该层规则基于历史决策反馈、模式识别和案例类比进行动态优化
+
+function void addL4Rule(Target t, String ruleId) {
+    if (t.getMatchedRules() == null) {
+        t.setMatchedRules(new ArrayList<String>());
+    }
+    t.getMatchedRules().add(ruleId);
+}
+
+// ===== 历史决策模式匹配 =====
+
+rule "L4-001: 历史高频威胁模式匹配-夜间蜂群"
+agenda-group "threat-escalation"
+salience 60
+when
+    $t : Target(droneCategory == DroneCategory.CLUSTER_SWARM,
+               (threatBehaviorTags contains "夜间活动" || threatBehaviorTags contains "NIGHT_OPERATION"))
+then
+    int currentLevel = $t.getThreatLevel() != null ? $t.getThreatLevel().getLevel() : 2;
+    if (currentLevel < 5) {
+        $t.setThreatLevel(ThreatLevel.fromLevel(currentLevel + 1));
+        $t.setThreatScore(Math.min(100, $t.getThreatScore() + 10));
+        $t.setEscalationReason(($t.getEscalationReason() != null ? $t.getEscalationReason() + "；" : "") + "L4学习层: 历史模式显示夜间蜂群多为有组织攻击");
+    }
+    addL4Rule($t, "L4-001");
+end
+
+rule "L4-002: 历史频繁侦察模式"
+agenda-group "threat-escalation"
+salience 55
+when
+    $t : Target((threatBehaviorTags contains "侦察" || threatBehaviorTags contains "徘徊"),
+                dwellTimeS > 600)
+then
+    int currentLevel = $t.getThreatLevel() != null ? $t.getThreatLevel().getLevel() : 2;
+    if (currentLevel < 4) {
+        $t.setThreatLevel(ThreatLevel.fromLevel(currentLevel + 1));
+        $t.setThreatScore(Math.min(100, $t.getThreatScore() + 8));
+        $t.setEscalationReason(($t.getEscalationReason() != null ? $t.getEscalationReason() + "；" : "") + "L4学习层: 长时间侦察(>10分钟)历史上经常先于攻击发生");
+    }
+    addL4Rule($t, "L4-002");
+end
+
+// ===== 策略有效性反馈 =====
+
+rule "L4-010: 消费级无人机-默认射频干扰有效"
+agenda-group "strategy-match"
+salience 45
+when
+    $t : Target(droneCategory == DroneCategory.CONSUMER_QUADCOPTER,
+                threatLevel != null, threatLevel.getLevel() >= 3, primaryStrategy == null)
+then
+    // 历史数据表明射频干扰对消费级无人机有>85%的成功率
+    $t.setPrimaryStrategy(StrategyType.RF_JAMMING);
+    $t.setSecondaryStrategy(StrategyType.GNSS_SPOOFING);
+    $t.setDecisionSource("L4_LEARNED");
+    addL4Rule($t, "L4-010");
+end
+
+rule "L4-011: 军用固定翼-策略组合推荐"
+agenda-group "strategy-match"
+salience 40
+when
+    $t : Target(droneCategory == DroneCategory.MILITARY_FIXED_WING,
+                threatLevel != null, threatLevel.getLevel() >= 4, primaryStrategy == null)
+then
+    // 历史数据表明单策略对军用固定翼成功率低，推荐组合策略
+    $t.setPrimaryStrategy(StrategyType.FULL_BAND_JAMMING);
+    $t.setSecondaryStrategy(StrategyType.LASER_DESTRUCTION);
+    $t.setDecisionSource("L4_LEARNED");
+    $t.setEscalationReason(($t.getEscalationReason() != null ? $t.getEscalationReason() + "；" : "") + "L4学习层: 历史数据推荐对军用固定翼使用组合策略");
+    addL4Rule($t, "L4-011");
+end
+
+// ===== 时间/季节性模式 =====
+
+rule "L4-020: 夜间操作模式检测"
+agenda-group "threat-classification"
+salience 35
+when
+    $req : DecisionRequest()
+    eval($req.getTimestamp() != null && $req.getTimestamp().getHour() >= 22 || $req.getTimestamp() != null && $req.getTimestamp().getHour() < 5)
+    $t : Target(threatLevel == null)
+then
+    // 夜间出现的未知目标基线威胁更高
+    $t.setThreatLevel(ThreatLevel.MEDIUM);
+    $t.setThreatScore(45.0);
+    $t.setEscalationReason("L4学习层: 夜间出现的未知目标，历史数据显示夜间入侵威胁更高");
+    addL4Rule($t, "L4-020");
+end
+
+// ===== 地形/环境自适应 =====
+
+rule "L4-030: 城市峡谷效应-多径干扰提醒"
+agenda-group "roe"
+salience 30
+when
+    $req : DecisionRequest(environment != null,
+           environment.emEnvironmentDesc != null,
+           environment.emEnvironmentDesc contains "城市")
+    $t : Target(primaryStrategy in (StrategyType.RF_JAMMING, StrategyType.FULL_BAND_JAMMING))
+then
+    $t.setEscalationReason(($t.getEscalationReason() != null ? $t.getEscalationReason() + "；" : "") + "L4学习层: 城市环境存在多径效应，射频干扰效能可能下降，建议调整天线方向");
+    addL4Rule($t, "L4-030");
+end

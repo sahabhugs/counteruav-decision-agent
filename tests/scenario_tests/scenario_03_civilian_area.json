@@ -1,0 +1,90 @@
+[
+  {
+    "scenario_id": "sc-integ-003",
+    "name": "民用区域上空目标处置-ROE约束测试",
+    "description": "无人机出现在居民区上空，系统必须在硬杀伤约束下选择软杀伤方案",
+    "input": {
+      "request_id": "integ-003",
+      "timestamp": "2026-07-13T17:00:00Z",
+      "defense_center": {"lat": 30.5728, "lon": 104.0668, "alt_m": 500},
+      "protected_zone": {"center": {"lat": 30.5728, "lon": 104.0668}, "radius_m": 2000},
+      "targets": [
+        {
+          "target_id": "T-CIV-001",
+          "track_id": "TRK-CIV-001",
+          "detection_time": "2026-07-13T16:55:00Z",
+          "position": {"lat": 30.5750, "lon": 104.0700, "alt_m": 150},
+          "velocity_ms": 8.0,
+          "heading_deg": 180,
+          "radial_speed_ms": -5.0,
+          "classification": {
+            "drone_type": "consumer_quadcopter",
+            "max_class_confidence": 0.88,
+            "is_evt_open_set": false,
+            "top3_classes": [{"type": "consumer_quadcopter", "confidence": 0.88}]
+          },
+          "threat_behaviors": [
+            {"tag": "DWELL_OBSERVE", "severity": 0.60}
+          ],
+          "rf_signature": {
+            "frequency_mhz": 2445,
+            "bandwidth_mhz": 20,
+            "modulation_type": "OFDM",
+            "snr_db": 18.0
+          },
+          "is_over_civilian_area": true,
+          "dwell_time_s": 180,
+          "droneCategory": "CONSUMER_QUADCOPTER"
+        }
+      ],
+      "available_devices": [
+        {
+          "device_id": "RF-JAM-001",
+          "type": "rf_jammer",
+          "status": "ONLINE",
+          "position": {"lat": 30.5730, "lon": 104.0670, "alt_m": 500},
+          "effective_range_m": 3000,
+          "frequency_coverage": ["2.4GHz", "5.8GHz"],
+          "max_erp_w": 200,
+          "current_target_id": null
+        },
+        {
+          "device_id": "LASER-001",
+          "type": "laser_destruction",
+          "status": "ONLINE",
+          "position": {"lat": 30.5730, "lon": 104.0670, "alt_m": 500},
+          "effective_range_m": 2000,
+          "current_target_id": null
+        },
+        {
+          "device_id": "NET-001",
+          "type": "net_capture",
+          "status": "ONLINE",
+          "position": {"lat": 30.5730, "lon": 104.0670, "alt_m": 500},
+          "effective_range_m": 500,
+          "current_target_id": null
+        }
+      ],
+      "environment": {
+        "terrain_type": "urban",
+        "weather": "clear",
+        "em_environment_noise_db": -75,
+        "is_night": false
+      },
+      "mode": "auto"
+    }
+  },
+  "expected_output": {
+    "source": "RULE_ENGINE",
+    "decision_for_T-CIV-001": {
+      "threat_level": 3,
+      "laser_blocked": true,
+      "kinetic_blocked": true,
+      "hard_kill_blocked": true,
+      "primary_action_soft_kill": true,
+      "primary_action_type_in": ["RF_JAMMING_2G4_5G8", "GNSS_SPOOFING"],
+      "needs_human_review": false
+    }
+  }
+}
+]

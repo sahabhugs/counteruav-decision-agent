@@ -1,0 +1,181 @@
+# ============================================================
+# 反无人机决策规则引擎 - 应用配置
+# ============================================================
+
+server:
+  port: 8080
+
+# ============================================================
+# MySQL 数据源配置
+# ============================================================
+spring:
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/counteruav_db?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: root
+
+  # ============================================================
+  # Jackson 配置
+  # ============================================================
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+    default-property-inclusion: non_null
+
+# ============================================================
+# Druid 连接池配置
+# ============================================================
+druid:
+  initial-size: 5
+  min-idle: 5
+  max-active: 20
+  # 获取连接超时时间（毫秒）
+  max-wait: 60000
+  # 检测空闲连接的间隔时间（毫秒）
+  time-between-eviction-runs-millis: 60000
+  # 连接在池中最小空闲时间（毫秒）
+  min-evictable-idle-time-millis: 300000
+  # 检测连接是否有效的SQL
+  validation-query: SELECT 1
+  # 空闲时检测连接有效性
+  test-while-idle: true
+  # 申请连接时检测连接有效性
+  test-on-borrow: false
+  # 归还连接时检测连接有效性
+  test-on-return: false
+  # 是否缓存PreparedStatement
+  pool-prepared-statements: true
+  # PreparedStatement缓存大小
+  max-pool-prepared-statement-per-connection-size: 20
+  # 配置监控统计拦截的filters
+  filters: stat,wall,slf4j
+  # 通过connectProperties属性来打开mergeSql功能；慢SQL记录
+  connection-properties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=5000
+  # 合并多个DruidDataSource的监控数据
+  use-global-data-source-stat: true
+  # WebStatFilter配置
+  web-stat-filter:
+    enabled: true
+    url-pattern: /*
+    exclusions: "*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*"
+  # StatViewServlet配置
+  stat-view-servlet:
+    enabled: true
+    url-pattern: /druid/*
+    login-username: admin
+    login-password: admin
+    reset-enable: false
+
+# ============================================================
+# MyBatis-Plus 配置
+# ============================================================
+mybatis-plus:
+  # 实体类扫描包路径
+  type-aliases-package: com.counteruav.entity
+  # XML映射文件路径
+  mapper-locations: classpath*:mapper/**/*.xml
+  configuration:
+    # 数据库表字段下划线转驼峰
+    map-underscore-to-camel-case: true
+    # SQL日志输出到标准输出
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    # 开启二级缓存
+    cache-enabled: true
+  global-config:
+    db-config:
+      # 主键类型：自增
+      id-type: auto
+      # 逻辑删除字段名
+      logic-delete-field: deleted
+      # 逻辑删除值（1表示已删除）
+      logic-delete-value: 1
+      # 逻辑未删除值（0表示未删除）
+      logic-not-delete-value: 0
+
+# ============================================================
+# LLM Agent 配置
+# ============================================================
+llm:
+  agent:
+    # LLM Agent 服务地址（Python端AI推理服务）
+    base-url: http://localhost:8001
+    # 连接超时时间（毫秒）
+    connect-timeout: 30000
+    # 读取超时时间（毫秒）
+    read-timeout: 60000
+
+# ============================================================
+# Drools 规则引擎配置
+# ============================================================
+drools:
+  rule:
+    # 规则文件基础路径
+    base-path: classpath:rules/
+    # L1物理层规则路径
+    l1-path: classpath:rules/l1-physics/
+    # L2条令层规则路径
+    l2-path: classpath:rules/l2-doctrine/
+    # L3战术层规则路径
+    l3-path: classpath:rules/l3-tactical/
+    # L4学习层规则路径
+    l4-path: classpath:rules/l4-learning/
+    # 是否启用规则热加载
+    hot-reload-enabled: true
+
+# ============================================================
+# 限流配置
+# ============================================================
+rate-limit:
+  # 每分钟最大调用次数
+  max-calls-per-minute: 10
+  # 冷却时间（毫秒）
+  cooldown-ms: 5000
+  # 单个目标最大调用次数
+  max-calls-per-target: 3
+
+# ============================================================
+# 决策引擎配置
+# ============================================================
+decision:
+  # 置信度阈值：低于此阈值的结果将被丢弃或请求AI二次评估
+  confidence-threshold: 0.80
+
+# ============================================================
+# CounterUAV 业务配置（与@Value注解中的counteruav.*前缀对应）
+# ============================================================
+counteruav:
+  llm:
+    # LLM Agent 服务地址
+    agent-url: http://localhost:8001
+    # LLM调用速率限制
+    rate-limit:
+      max-calls-per-minute: 10
+      cooldown-ms: 5000
+      max-calls-per-target: 3
+  confidence:
+    # 置信度阈值：低于此阈值的结果将触发LLM辅助决策
+    threshold: 0.80
+
+# ============================================================
+# 日志配置
+# ============================================================
+logging:
+  level:
+    # 根日志级别
+    root: INFO
+    # 反无人机项目包日志级别
+    com.counteruav: DEBUG
+    # Druid监控日志
+    com.alibaba.druid: WARN
+    # MyBatis SQL日志（由mybatis-plus.log-impl控制台输出，此处控制文件日志级别）
+    com.baomidou.mybatisplus: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
+  file:
+    # 日志文件路径
+    path: ./logs
+    # 日志文件名
+    name: ${logging.file.path}/rule-engine.log

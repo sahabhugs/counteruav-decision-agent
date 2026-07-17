@@ -1,0 +1,70 @@
+package rules.l2_doctrine;
+
+import com.counteruav.model.*;
+import com.counteruav.model.Target.StrategyType;
+import java.util.List;
+import java.util.ArrayList;
+
+function void addROERule(Target t, String ruleId) {
+    if (t.getMatchedRules() == null) {
+        t.setMatchedRules(new ArrayList<String>());
+    }
+    t.getMatchedRules().add(ruleId);
+}
+
+rule "L2-020: 阻止低威胁激光摧毁"
+agenda-group "roe"
+salience 100
+when
+    $t : Target(threatLevel != null, threatLevel.getLevel() < 4, primaryStrategy == StrategyType.LASER_DESTRUCTION)
+then
+    $t.setPrimaryStrategy(StrategyType.RF_JAMMING);
+    $t.setEscalationReason(($t.getEscalationReason() != null ? $t.getEscalationReason() + "；" : "") + "ROE约束: 威胁等级" + $t.getThreatLevel().getLabel() + "不足以使用激光摧毁，降级为射频干扰");
+    addROERule($t, "L2-020");
+end
+
+rule "L2-021: 民用区禁止致命武器"
+agenda-group "roe"
+salience 100
+when
+    $t : Target(overCivilianArea == true, threatLevel != null, threatLevel.getLevel() < 5,
+               primaryStrategy in (StrategyType.LASER_DESTRUCTION, StrategyType.KINETIC_INTERCEPT))
+then
+    $t.setPrimaryStrategy(StrategyType.RF_JAMMING);
+    $t.setSecondaryStrategy(StrategyType.GNSS_SPOOFING);
+    $t.setEscalationReason(($t.getEscalationReason() != null ? $t.getEscalationReason() + "；" : "") + "ROE约束: 民用区域上空禁止使用致命性武器，降级为非致命手段");
+    addROERule($t, "L2-021");
+end
+
+rule "L2-022: 民用区致命武器使用警告"
+agenda-group "roe"
+salience 90
+when
+    $t : Target(overCivilianArea == true, threatLevel != null, threatLevel.getLevel() >= 5,
+               primaryStrategy in (StrategyType.LASER_DESTRUCTION, StrategyType.KINETIC_INTERCEPT, StrategyType.HPM_PULSE))
+then
+    $t.setEscalationReason(($t.getEscalationReason() != null ? $t.getEscalationReason() + "；" : "") + "ROE警告: 民用区域上空使用致命武器，需指挥官确认");
+    addROERule($t, "L2-022");
+end
+
+rule "L2-023: 友军飞机附近延迟干扰"
+agenda-group "roe"
+salience 85
+when
+    $t : Target(threatBehaviorTags contains "friendly_aircraft_nearby")
+then
+    $t.setPrimaryStrategy(StrategyType.MONITOR);
+    $t.setEscalationReason(($t.getEscalationReason() != null ? $t.getEscalationReason() + "；" : "") + "ROE约束: 友军飞机附近，延迟主动干扰，持续监视");
+    addROERule($t, "L2-023");
+end
+
+rule "L2-024: 自干扰风险降功率"
+agenda-group "roe"
+salience 70
+when
+    $t : Target(threatBehaviorTags contains "self_interference_risk", primaryStrategy in (StrategyType.RF_JAMMING, StrategyType.FULL_BAND_JAMMING))
+then
+    // 降低干扰功率以避免自干扰
+    $t.setEscalationReason(($t.getEscalationReason() != null ? $t.getEscalationReason() + "；" : "") + "ROE: 自干扰风险，建议降功率运行");
+    addROERule($t, "L2-024");
+end

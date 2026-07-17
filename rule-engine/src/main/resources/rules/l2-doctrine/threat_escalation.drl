@@ -1,0 +1,94 @@
+package rules.l2_doctrine;
+
+import com.counteruav.model.*;
+import com.counteruav.model.Target.DroneCategory;
+import java.util.List;
+import java.util.ArrayList;
+
+function void addEscalationRule(Target t, String ruleId) {
+    if (t.getMatchedRules() == null) {
+        t.setMatchedRules(new ArrayList<String>());
+    }
+    t.getMatchedRules().add(ruleId);
+}
+
+rule "L2-010: 俯冲+信号异常"
+agenda-group "threat-escalation"
+salience 100
+when
+    $t : Target(threatLevel != null,
+               (threatBehaviorTags contains "altitude_dive" || threatBehaviorTags contains "ALTITUDE_DIVE"),
+               (threatBehaviorTags contains "signal_anomaly" || threatBehaviorTags contains "SIGNAL_ANOMALY"))
+then
+    int level = $t.getThreatLevel().getLevel();
+    if (level < 5) {
+        $t.setThreatLevel(ThreatLevel.fromLevel(level + 1));
+        $t.setThreatScore(Math.min(100, $t.getThreatScore() + 20));
+        $t.setEscalationReason(($t.getEscalationReason() != null ? $t.getEscalationReason() + "；" : "") + "俯冲机动+信号异常，威胁升级1级");
+    }
+    addEscalationRule($t, "L2-010");
+end
+
+rule "L2-011: 蜂群快速抵近"
+agenda-group "threat-escalation"
+salience 100
+when
+    $t : Target(droneCategory == DroneCategory.CLUSTER_SWARM, radialSpeedMs > 10, threatLevel != null)
+then
+    int level = $t.getThreatLevel().getLevel();
+    int escalation = 0;
+    while (escalation < 2 && level < 5) {
+        level++;
+        escalation++;
+    }
+    $t.setThreatLevel(ThreatLevel.fromLevel(level));
+    $t.setThreatScore(Math.min(100, $t.getThreatScore() + 30));
+    $t.setEscalationReason(($t.getEscalationReason() != null ? $t.getEscalationReason() + "；" : "") + "蜂群快速抵近，威胁升级2级");
+    addEscalationRule($t, "L2-011");
+end
+
+rule "L2-012: 高速低空突防"
+agenda-group "threat-escalation"
+salience 90
+when
+    $t : Target(velocityMs > 25, position.altM < 50, threatLevel != null)
+then
+    int level = $t.getThreatLevel().getLevel();
+    if (level < 5) {
+        $t.setThreatLevel(ThreatLevel.fromLevel(level + 1));
+        $t.setThreatScore(Math.min(100, $t.getThreatScore() + 15));
+        $t.setEscalationReason(($t.getEscalationReason() != null ? $t.getEscalationReason() + "；" : "") + "高速低空突防(速度>" + $t.getVelocityMs() + "m/s, 高度<50m)，威胁升级");
+    }
+    addEscalationRule($t, "L2-012");
+end
+
+rule "L2-013: 复合威胁行为"
+agenda-group "threat-escalation"
+salience 85
+when
+    $t : Target(threatBehaviorTags != null, threatLevel != null)
+    eval($t.getThreatBehaviorTags().size() >= 3)
+then
+    int level = $t.getThreatLevel().getLevel();
+    if (level < 5) {
+        $t.setThreatLevel(ThreatLevel.fromLevel(level + 1));
+        $t.setThreatScore(Math.min(100, $t.getThreatScore() + 18));
+        $t.setEscalationReason(($t.getEscalationReason() != null ? $t.getEscalationReason() + "；" : "") + "检测到" + $t.getThreatBehaviorTags().size() + "个复合威胁行为标签，威胁升级");
+    }
+    addEscalationRule($t, "L2-013");
+end
+
+rule "L2-014: 信号丢失后重现(隐身威胁)"
+agenda-group "threat-escalation"
+salience 95
+when
+    $t : Target((threatBehaviorTags contains "signal_loss_reappear" || threatBehaviorTags contains "SIGNAL_LOSS_REAPPEAR"), threatLevel != null)
+then
+    int level = $t.getThreatLevel().getLevel();
+    if (level < 5) {
+        $t.setThreatLevel(ThreatLevel.fromLevel(level + 1));
+        $t.setThreatScore(Math.min(100, $t.getThreatScore() + 22));
+        $t.setEscalationReason(($t.getEscalationReason() != null ? $t.getEscalationReason() + "；" : "") + "信号丢失后重现，疑似隐身/电子静默威胁");
+    }
+    addEscalationRule($t, "L2-014");
+end

@@ -1,0 +1,75 @@
+[
+  {
+    "scenario_id": "sc-integ-002",
+    "name": "集群蜂群多方向协同攻击",
+    "description": "5架无人机从不同方向同时逼近，系统需在资源有限的情况下做出最优分配",
+    "input": {
+      "request_id": "integ-002",
+      "timestamp": "2026-07-13T16:00:00Z",
+      "defense_center": {"lat": 31.2304, "lon": 121.4737, "alt_m": 20},
+      "protected_zone": {"center": {"lat": 31.2304, "lon": 121.4737}, "radius_m": 3000},
+      "targets": [
+        {
+          "target_id": "T-SW-001",
+          "track_id": "TRK-SW-001",
+          "position": {"lat": 31.2350, "lon": 121.4700, "alt_m": 100},
+          "velocity_ms": 18, "radial_speed_ms": -16,
+          "classification": {"drone_type": "diy_fpv_5inch", "max_class_confidence": 0.72, "is_evt_open_set": false},
+          "threat_behaviors": [{"tag": "RAPID_APPROACH", "severity": 0.90}],
+          "droneCategory": "DIY_FPV"
+        },
+        {
+          "target_id": "T-SW-002",
+          "track_id": "TRK-SW-002",
+          "position": {"lat": 31.2280, "lon": 121.4800, "alt_m": 150},
+          "velocity_ms": 15, "radial_speed_ms": -14,
+          "classification": {"drone_type": "unknown", "max_class_confidence": 0.45, "is_evt_open_set": true},
+          "threat_behaviors": [{"tag": "RAPID_APPROACH", "severity": 0.85}, {"tag": "SIGNAL_ANOMALY", "severity": 0.70}],
+          "droneCategory": "UNKNOWN"
+        },
+        {
+          "target_id": "T-SW-003",
+          "track_id": "TRK-SW-003",
+          "position": {"lat": 31.2320, "lon": 121.4650, "alt_m": 60},
+          "velocity_ms": 25, "radial_speed_ms": -24,
+          "classification": {"drone_type": "diy_fpv_7inch", "max_class_confidence": 0.68, "is_evt_open_set": false},
+          "threat_behaviors": [{"tag": "RAPID_APPROACH", "severity": 0.95}, {"tag": "ALTITUDE_DIVE", "severity": 0.90}],
+          "droneCategory": "DIY_FPV"
+        },
+        {
+          "target_id": "T-SW-004",
+          "track_id": "TRK-SW-004",
+          "position": {"lat": 31.2380, "lon": 121.4750, "alt_m": 200},
+          "velocity_ms": 10, "radial_speed_ms": -8,
+          "classification": {"drone_type": "consumer_quadcopter", "max_class_confidence": 0.85},
+          "threat_behaviors": [{"tag": "DWELL_OBSERVE", "severity": 0.50}],
+          "droneCategory": "CONSUMER_QUADCOPTER"
+        },
+        {
+          "target_id": "T-SW-005",
+          "track_id": "TRK-SW-005",
+          "position": {"lat": 31.2250, "lon": 121.4780, "alt_m": 120},
+          "velocity_ms": 20, "radial_speed_ms": -18,
+          "classification": {"drone_type": "unknown", "max_class_confidence": 0.40, "is_evt_open_set": true},
+          "threat_behaviors": [{"tag": "RAPID_APPROACH", "severity": 0.88}, {"tag": "CLUSTER_SWARM", "severity": 0.92}],
+          "droneCategory": "CLUSTER_SWARM"
+        }
+      ],
+      "available_devices": [
+        {"device_id": "RF-JAM-001", "type": "rf_jammer", "status": "ONLINE", "effective_range_m": 3000, "frequency_coverage": ["2.4GHz","5.8GHz","900MHz"]},
+        {"device_id": "RF-JAM-002", "type": "rf_jammer", "status": "ONLINE", "effective_range_m": 3000, "frequency_coverage": ["2.4GHz","5.8GHz"]},
+        {"device_id": "GNSS-001", "type": "gnss_spoofer", "status": "ONLINE", "effective_range_m": 5000}
+      ],
+      "environment": {"terrain_type": "urban", "weather": "clear", "em_environment_noise_db": -90, "is_night": true},
+      "mode": "auto"
+    }
+  },
+  "expected_output": {
+    "total_decisions": 5,
+    "resource_shortage_triggered": true,
+    "T-SW-003_priority_highest": true,
+    "T-SW-004_gets_monitor_only": true,
+    "llm_triggered": true
+  }
+}
+]

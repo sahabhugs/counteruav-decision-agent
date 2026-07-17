@@ -1,0 +1,227 @@
+{
+  "test_suite": "LLM Agent 决策质量测试用例",
+  "description": "用于评估LLM Agent推理质量的标注测试集",
+  "gold_standard_provider": "领域专家标注",
+  "test_cases": [
+    {
+      "test_id": "LLM-TC-001",
+      "category": "未知目标识别与处置",
+      "difficulty": "medium",
+      "scenario_summary": "一架无法识别的无人机以22m/s速度逼近指挥中心，距离420m，高度80m且在下降，触发三个威胁行为标签",
+      "situation": {
+        "target": {
+          "drone_type": "unknown",
+          "max_class_confidence": 0.38,
+          "is_evt_open_set": true,
+          "distance_m": 420,
+          "radial_speed_ms": -22,
+          "altitude_m": 80,
+          "altitude_trend": "descending",
+          "threat_behaviors": ["RAPID_APPROACH", "ALTITUDE_DIVE", "SIGNAL_ANOMALY"],
+          "is_over_civilian_area": false
+        },
+        "available_devices": ["rf_jammer_full_band", "gnss_spoofer", "laser"],
+        "defense_type": "command_center"
+      },
+      "expected": {
+        "threat_level": 5,
+        "primary_action": "FULL_BAND_JAMMING",
+        "uncertainty_flags_contains": "UNKNOWN_DRONE_TYPE",
+        "rule_proposal_expected": true,
+        "hard_kill_approved": true
+      }
+    },
+    {
+      "test_id": "LLM-TC-002",
+      "category": "己知消费级无人机中等距离",
+      "difficulty": "easy",
+      "scenario_summary": "一架已确认的DJI Mavic 3在1500m处慢速盘旋，驻留超过5分钟",
+      "situation": {
+        "target": {
+          "drone_type": "dji-mavic-3",
+          "drone_category": "consumer_quadcopter",
+          "max_class_confidence": 0.91,
+          "distance_m": 1500,
+          "radial_speed_ms": -2,
+          "altitude_m": 100,
+          "dwell_time_s": 320,
+          "threat_behaviors": ["DWELL_OBSERVE"],
+          "is_over_civilian_area": false,
+          "frequency_bands": ["2.4GHz", "5.8GHz"]
+        },
+        "available_devices": ["rf_jammer_2.4g_5.8g", "gnss_spoofer"],
+        "defense_type": "military_base"
+      },
+      "expected": {
+        "threat_level_range": [2, 3],
+        "primary_action": "RF_JAMMING_2G4_5G8",
+        "secondary_action": "GNSS_SPOOFING",
+        "hard_kill_not_expected": true
+      }
+    },
+    {
+      "test_id": "LLM-TC-003",
+      "category": "资源不足多目标排序",
+      "difficulty": "hard",
+      "scenario_summary": "4个目标同时威胁，仅有2台可用设备。需要正确排序处置优先级",
+      "situation": {
+        "targets": [
+          {"id": "A", "threat_level": 5, "distance_m": 300, "drone_type": "unknown", "radial_speed_ms": -25},
+          {"id": "B", "threat_level": 4, "distance_m": 800, "drone_type": "military_fixed_wing", "radial_speed_ms": -15},
+          {"id": "C", "threat_level": 3, "distance_m": 2000, "drone_type": "consumer_quadcopter", "radial_speed_ms": -5},
+          {"id": "D", "threat_level": 2, "distance_m": 4000, "drone_type": "consumer_quadcopter", "radial_speed_ms": 2}
+        ],
+        "available_devices": [
+          {"type": "rf_jammer_full_band", "effective_range_m": 3000},
+          {"type": "laser", "effective_range_m": 2000}
+        ],
+        "defense_type": "critical_infrastructure"
+      },
+      "expected": {
+        "priority_order": ["A", "B", "C", "D"],
+        "a_gets_best_device": true,
+        "d_may_get_no_device": true,
+        "reasoning_includes_resource_allocation": true
+      }
+    },
+    {
+      "test_id": "LLM-TC-004",
+      "category": "民用区域ROE约束",
+      "difficulty": "medium",
+      "scenario_summary": "无人机在居民区上空，即使威胁较高也不能使用硬杀伤",
+      "situation": {
+        "target": {
+          "drone_type": "diy_fpv_5inch",
+          "drone_category": "diy_fpv",
+          "max_class_confidence": 0.75,
+          "distance_m": 600,
+          "radial_speed_ms": -12,
+          "threat_behaviors": ["RAPID_APPROACH"],
+          "is_over_civilian_area": true
+        },
+        "available_devices": ["rf_jammer_5.8g", "gnss_spoofer", "laser", "net_capture"],
+        "defense_type": "urban_area"
+      },
+      "expected": {
+        "threat_level": 4,
+        "hard_kill_blocked": true,
+        "primary_action_soft_kill": true,
+        "laser_or_kinetic_not_in_primary": true,
+        "reasoning_mentions_ROE": true
+      }
+    },
+    {
+      "test_id": "LLM-TC-005",
+      "category": "传感器质量差时保守策略",
+      "difficulty": "medium",
+      "scenario_summary": "雷达多径效应严重导致SNR极低，目标数据不可靠",
+      "situation": {
+        "target": {
+          "drone_type": "unknown",
+          "max_class_confidence": 0.30,
+          "distance_m": 2000,
+          "radial_speed_ms": -5,
+          "threat_behaviors": [],
+          "sensor_snr_db": 3.0
+        },
+        "available_devices": ["rf_jammer_full_band", "gnss_spoofer", "laser"],
+        "defense_type": "military_base",
+        "sensor_quality_flag": "LOW"
+      },
+      "expected": {
+        "threat_level_biased_high": true,
+        "uncertainty_flags_contains": "SENSOR_SNR_LOW",
+        "conservative_approach": true
+      }
+    },
+    {
+      "test_id": "LLM-TC-006",
+      "category": "GNSS诱骗对无GNSS目标无效",
+      "difficulty": "easy",
+      "scenario_summary": "纯手动FPV竞速机不使用GNSS，应自动排除GNSS诱骗方案",
+      "situation": {
+        "target": {
+          "drone_type": "diy-fpv-5inch",
+          "drone_category": "diy_fpv",
+          "gnss": [],
+          "frequency_bands": ["5.8GHz"],
+          "max_class_confidence": 0.82,
+          "distance_m": 500,
+          "radial_speed_ms": -30
+        },
+        "available_devices": ["rf_jammer_5.8g", "gnss_spoofer", "net_capture"],
+        "defense_type": "military_base"
+      },
+      "expected": {
+        "gnss_spoofing_excluded": true,
+        "primary_action": "RF_JAMMING_5G8",
+        "secondary_may_include_net": true,
+        "reasoning_mentions_no_gnss": true
+      }
+    },
+    {
+      "test_id": "LLM-TC-007",
+      "category": "复合威胁-5标签同时触发",
+      "difficulty": "hard",
+      "scenario_summary": "目标同时触发所有5种威胁行为标签（极端罕见但必须能处理）",
+      "situation": {
+        "target": {
+          "drone_type": "unknown",
+          "max_class_confidence": 0.25,
+          "distance_m": 200,
+          "radial_speed_ms": -35,
+          "altitude_m": 30,
+          "threat_behaviors": [
+            "RAPID_APPROACH", "ALTITUDE_DIVE", "SIGNAL_ANOMALY",
+            "HEADING_CHANGE", "CLUSTER_SWARM"
+          ],
+          "is_over_civilian_area": false
+        },
+        "available_devices": ["rf_jammer_full_band", "laser", "high_power_microwave"],
+        "defense_type": "command_center"
+      },
+      "expected": {
+        "threat_level": 5,
+        "use_most_aggressive_response": true,
+        "all_available_devices_deployed": true,
+        "escalation_to_hard_kill": true
+      }
+    },
+    {
+      "test_id": "LLM-TC-008",
+      "category": "规则冲突无法自动消解",
+      "difficulty": "medium",
+      "scenario_summary": "两条同优先级规则给出不同建议，需LLM裁决",
+      "situation": {
+        "target": {
+          "drone_type": "hybrid_unknown",
+          "distance_m": 800,
+          "radial_speed_ms": -10,
+          "threat_behaviors": ["RAPID_APPROACH"],
+          "is_over_civilian_area": false
+        },
+        "conflicting_rules": [
+          {"rule_id": "L3-tactic-007", "action": "RF_JAMMING_5G8", "salience": 60},
+          {"rule_id": "L3-tactic-012", "action": "FULL_BAND_JAMMING", "salience": 60}
+        ],
+        "available_devices": ["rf_jammer_5.8g", "rf_jammer_full_band", "gnss_spoofer"],
+        "defense_type": "military_base"
+      },
+      "expected": {
+        "rule_conflict_resolved": true,
+        "explanation_of_choice_provided": true,
+        "uncertainty_flags_contains": "RULE_CONFLICT"
+      }
+    }
+  ],
+  "evaluation_metrics": {
+    "primary": "threat_level_accuracy",
+    "secondary": ["action_type_accuracy", "roe_compliance", "uncertainty_awareness"],
+    "pass_threshold": {
+      "threat_level_accuracy": 0.85,
+      "action_type_accuracy": 0.80,
+      "roe_compliance": 0.95,
+      "uncertainty_awareness": 0.75
+    }
+  }
+}

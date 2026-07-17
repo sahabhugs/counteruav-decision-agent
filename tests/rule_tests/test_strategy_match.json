@@ -1,0 +1,182 @@
+{
+  "test_suite": "策略匹配规则测试",
+  "module": "L2 - strategy_match.drl + L3 tactics",
+  "test_cases": [
+    {
+      "test_id": "TC-STRAT-001",
+      "description": "消费级四旋翼 + 距离<3000m → 2.4/5.8GHz射频干扰",
+      "input": {
+        "target": {
+          "target_id": "T-STRAT-001",
+          "droneCategory": "CONSUMER_QUADCOPTER",
+          "distance": 2000,
+          "threatLevel": 3
+        }
+      },
+      "expected": {
+        "primaryStrategy": "RF_JAMMING_2G4_5G8",
+        "secondaryStrategy": "GNSS_SPOOFING"
+      }
+    },
+    {
+      "test_id": "TC-STRAT-002",
+      "description": "军用固定翼 + 距离<10000m → GNSS诱骗为主 + 激光为备",
+      "input": {
+        "target": {
+          "target_id": "T-STRAT-002",
+          "droneCategory": "MILITARY_FIXED_WING",
+          "distance": 5000,
+          "threatLevel": 4
+        }
+      },
+      "expected": {
+        "primaryStrategy": "GNSS_SPOOFING",
+        "secondaryStrategy": "LASER_DESTRUCTION"
+      }
+    },
+    {
+      "test_id": "TC-STRAT-003",
+      "description": "集群蜂群(≥3目标) → 全频段压制",
+      "input": {
+        "target": {
+          "target_id": "T-STRAT-003",
+          "droneCategory": "CLUSTER_SWARM",
+          "distance": 3000,
+          "threatLevel": 5
+        },
+        "cluster_target_count": 5
+      },
+      "expected": {
+        "primaryStrategy": "FULL_BAND_JAMMING",
+        "avoid": ["SINGLE_TARGET_JAMMING", "GNSS_SPOOFING_SINGLE"]
+      }
+    },
+    {
+      "test_id": "TC-STRAT-004",
+      "description": "未知型号 + 极危 → 全频段压制 + 激光待命",
+      "input": {
+        "target": {
+          "target_id": "T-STRAT-004",
+          "droneCategory": "UNKNOWN",
+          "distance": 600,
+          "threatLevel": 5
+        }
+      },
+      "expected": {
+        "primaryStrategy": "FULL_BAND_JAMMING",
+        "secondaryStrategy_contains": "LASER"
+      }
+    },
+    {
+      "test_id": "TC-STRAT-005",
+      "description": "单个目标 + 低威胁 + 远距离 → 仅监视",
+      "input": {
+        "target": {
+          "target_id": "T-STRAT-005",
+          "droneCategory": "CONSUMER_QUADCOPTER",
+          "distance": 8000,
+          "threatLevel": 1
+        }
+      },
+      "expected": {
+        "primaryStrategy": "MONITOR_ONLY",
+        "secondaryStrategy": null
+      }
+    },
+    {
+      "test_id": "TC-STRAT-006",
+      "description": "DJI类消费级无人机 → 优先射频干扰(从L3 JSON规则匹配)",
+      "input": {
+        "target": {
+          "target_id": "T-STRAT-006",
+          "droneType": "dji-mavic-3",
+          "droneCategory": "CONSUMER_QUADCOPTER",
+          "distance": 1500,
+          "threatLevel": 3,
+          "rfSignature": {
+            "frequency_mhz": 2450,
+            "protocol": "OcuSync 3.0"
+          }
+        }
+      },
+      "expected": {
+        "primaryStrategy": "RF_JAMMING_2G4_5G8",
+        "avoid_contains": "LASER_DESTRUCTION"
+      }
+    },
+    {
+      "test_id": "TC-STRAT-007",
+      "description": "DIY FPV竞速机 → 5.8GHz频段干扰 + 网捕(可选)",
+      "input": {
+        "target": {
+          "target_id": "T-STRAT-007",
+          "droneType": "diy-fpv-5inch",
+          "droneCategory": "DIY_FPV",
+          "distance": 800,
+          "threatLevel": 4,
+          "rfSignature": {
+            "frequency_mhz": 5850,
+            "modulation": "FM_Analog"
+          }
+        }
+      },
+      "expected": {
+        "primaryStrategy_contains": "5.8G",
+        "secondaryStrategy_contains": "NET"
+      }
+    },
+    {
+      "test_id": "TC-STRAT-008",
+      "description": "多目标时按威胁等级分配优先级 → 高威胁目标先处理",
+      "input": {
+        "targets": [
+          {"target_id": "T-A", "threatLevel": 3, "distance": 2000},
+          {"target_id": "T-B", "threatLevel": 5, "distance": 500},
+          {"target_id": "T-C", "threatLevel": 1, "distance": 10000},
+          {"target_id": "T-D", "threatLevel": 4, "distance": 1500}
+        ],
+        "available_devices": 2
+      },
+      "expected": {
+        "priority_order": ["T-B", "T-D", "T-A", "T-C"],
+        "T-B_gets_device": true,
+        "T-C_gets_device": false
+      }
+    },
+    {
+      "test_id": "TC-STRAT-009",
+      "description": "设备资源不足时智能降级 → 次优方案",
+      "input": {
+        "targets": [
+          {"target_id": "T-X", "threatLevel": 5, "distance": 400},
+          {"target_id": "T-Y", "threatLevel": 5, "distance": 600}
+        ],
+        "available_devices": [
+          {"device_id": "RF-1", "type": "rf_jammer", "status": "ONLINE"},
+          {"device_id": "L-A", "type": "laser", "status": "ONLINE"}
+        ]
+      },
+      "expected": {
+        "T-X_gets_best_device": true,
+        "T-Y_gets_secondary_device": true,
+        "both_targets_get_some_response": true
+      }
+    },
+    {
+      "test_id": "TC-STRAT-010",
+      "description": "GNSS诱骗对无GNSS的FPV目标无效 → 自动排除",
+      "input": {
+        "target": {
+          "target_id": "T-STRAT-010",
+          "droneType": "diy-fpv-5inch",
+          "droneCategory": "DIY_FPV",
+          "gnss": []
+        }
+      },
+      "expected": {
+        "strategies_not_include": "GNSS_SPOOFING",
+        "avoid_contains": "GNSS_SPOOFING"
+      }
+    }
+  ]
+}

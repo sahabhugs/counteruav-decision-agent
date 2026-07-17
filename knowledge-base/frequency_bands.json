@@ -1,0 +1,142 @@
+[
+  {
+    "band_name": "433MHz ISM",
+    "frequency_range_mhz": [430, 440],
+    "common_usage": "远距离RC遥控链路，无人机数据/遥测回传，工业遥控设备",
+    "drone_models_using": ["RQ-11 Raven", "Orlan-10", "Customized long-range drones"],
+    "jammer_type": "rf_jamming_433mhz",
+    "jammer_power_w": 50,
+    "effective_range_km": 3.0,
+    "notes": "433MHz频段穿透能力强、绕射性能好，适合超视距控制和低速数据回传。在此频段工作的军用无人机对干扰有一定抵抗能力。干扰功率需较大才能有效覆盖，但大功率干扰可能影响合法的业余无线电和ISM设备。"
+  },
+  {
+    "band_name": "868MHz EU ISM",
+    "frequency_range_mhz": [863, 870],
+    "common_usage": "欧洲ISM频段，远距离无人机控制，物联网通信，LoRa协议常用频段",
+    "drone_models_using": ["Orlan-10", "DIY 7-inch Long Range FPV (ELRS 868MHz)", "Custom drones with LoRa control"],
+    "jammer_type": "rf_jamming_868mhz",
+    "jammer_power_w": 30,
+    "effective_range_km": 2.5,
+    "notes": "868MHz为欧洲和俄罗斯常用ISM频段，ELRS 868MHz模式和Crossfire均支持此频段。在欧洲和东欧/中亚冲突地区检测到此频段无人机活动较多。干扰时需注意与LoRaWAN物联网设备的区别。"
+  },
+  {
+    "band_name": "900MHz US ISM",
+    "frequency_range_mhz": [902, 928],
+    "common_usage": "北美ISM频段，TBS Crossfire和ELRS远程控制链路，工业/科学/医疗设备",
+    "drone_models_using": ["Autel EVO II Pro", "Autel EVO Max 4T", "DIY 5-inch Freestyle FPV", "DIY 7-inch Long Range FPV", "Custom one-way attack drone"],
+    "jammer_type": "rf_jamming_900mhz",
+    "jammer_power_w": 30,
+    "effective_range_km": 2.5,
+    "notes": "900MHz是FPV远程飞行和DIY无人机最常用的控制频段。ELRS和Crossfire协议在此频段提供数公里至数十公里的可靠控制距离，功率可高达2W。该频段的无人机信号特征与LoRa物联网设备相似，需要协议分析进行区分。在北美的使用量远高于其他地区。"
+  },
+  {
+    "band_name": "915MHz AUS ISM",
+    "frequency_range_mhz": [915, 928],
+    "common_usage": "澳大利亚ISM频段，ELRS 915MHz远程控制，工业通信",
+    "drone_models_using": ["DIY 7-inch Long Range FPV (ELRS 915MHz)", "Custom drones (Australian region)"],
+    "jammer_type": "rf_jamming_915mhz",
+    "jammer_power_w": 30,
+    "effective_range_km": 2.5,
+    "notes": "915MHz是澳大利亚和新西兰分配的ISM频段，与北美900MHz频段部分重叠。ELRS 915MHz版本专为此区域优化。在其他地区较少检测到，但区域冲突中可能出现跨境操作时使用此频段。"
+  },
+  {
+    "band_name": "1.2GHz FPV Video",
+    "frequency_range_mhz": [1200, 1300],
+    "common_usage": "远距离FPV模拟视频传输，机载视频下传链路",
+    "drone_models_using": ["DIY 7-inch Long Range FPV", "Custom long-range FPV platforms", "Vintage FPV aircraft"],
+    "jammer_type": "rf_jamming_1.2ghz",
+    "jammer_power_w": 20,
+    "effective_range_km": 2.0,
+    "notes": "1.2-1.3GHz曾广泛用于FPV远距离模拟视频传输，因其穿透和绕射能力优于5.8GHz。部分国家和地区限制此频段的使用（可能干扰航空导航），但在不受监管的冲突地区仍被使用。模拟FM调制使其难以被协议分析工具识别，需要频谱扫描发现。"
+  },
+  {
+    "band_name": "1.5GHz GPS L1",
+    "frequency_range_mhz": [1563.42, 1587.42],
+    "common_usage": "GPS L1 C/A码民用导航，无人机定位和导航，精确授时",
+    "drone_models_using": ["所有具备GPS的无人机型号"],
+    "jammer_type": "gnss_spoofing",
+    "jammer_power_w": 0.01,
+    "effective_range_km": 1.0,
+    "notes": "GPS L1是无人机定位的核心频段，信号到达地面功率仅约-130dBm，极易被低功率干扰或欺骗。GNSS欺骗信号仅需-100dBm即可使大多数民用GPS接收机锁定欺骗信号。干扰功率不需要大，但需要精确的欺骗信号生成能力。军用级GPS接收机具备抗欺骗能力（SAASM/M-Code）。"
+  },
+  {
+    "band_name": "1.6GHz GLONASS L1",
+    "frequency_range_mhz": [1594, 1610],
+    "common_usage": "GLONASS L1导航信号，俄罗斯卫星导航系统，无人机辅助定位",
+    "drone_models_using": ["Orlan-10", "所有支持GLONASS的无人机型号"],
+    "jammer_type": "gnss_spoofing",
+    "jammer_power_w": 0.01,
+    "effective_range_km": 1.0,
+    "notes": "GLONASS L1使用FDMA体制，与GPS CDMA体制不同。欺骗GLONASS需要模拟FDMA信号结构，技术要求高于GPS欺骗。俄罗斯军用无人机（如Orlan-10）优先使用GLONASS并可能配合军用加密信号，欺骗难度更大。多星座GNSS接收机同时使用GPS+GLONASS提高了鲁棒性。"
+  },
+  {
+    "band_name": "2.4GHz ISM",
+    "frequency_range_mhz": [2400, 2483.5],
+    "common_usage": "无人机主控制链路，WiFi，蓝牙，消费级无人机视频下传，飞控数据上传",
+    "drone_models_using": ["DJI Mavic 3", "DJI Mini 3 Pro", "DJI Phantom 4 Pro", "DJI Matrice 300 RTK", "DJI Matrice 350 RTK", "DJI Avata 2", "DJI Agras T30", "Autel EVO II Pro", "Autel EVO Max 4T", "Fimi X8 SE", "Skydio 2+", "Parrot Anafi USA", "DJI FPV drone", "DJI Mavic 3 Thermal", "Hubsan Zino Mini Pro", "Eachine EX5", "Custom one-way attack drone", "DIY Cinewhoop FPV"],
+    "jammer_type": "rf_jamming_2.4ghz",
+    "jammer_power_w": 20,
+    "effective_range_km": 1.5,
+    "notes": "2.4GHz是全球消费级无人机使用最广泛的频段，几乎所有商用无人机都支持。频道拥挤是主要挑战——WiFi、蓝牙、微波炉等设备的大量存在使无人机信号淹没在噪声中，单纯功率检测虚警率极高。需要使用协议识别+功率检测的多维判断。高效干扰需覆盖整个2.4-2.4835GHz频段。"
+  },
+  {
+    "band_name": "5.1GHz UNII-1",
+    "frequency_range_mhz": [5150, 5250],
+    "common_usage": "WiFi 5/6室内覆盖，部分无人机视频下传备用频段",
+    "drone_models_using": ["Skydio 2+", "Parrot Anafi USA", "DJI Mavic 3 (international version)"],
+    "jammer_type": "rf_jamming_5.1ghz",
+    "jammer_power_w": 20,
+    "effective_range_km": 1.5,
+    "notes": "UNII-1频段（5.15-5.25GHz）主要用于室内WiFi，无人机使用较少。但某些国际版无人机固件会使用此频段以规避5.8GHz区域限制。DFS（动态频率选择）机制使此频段的使用具有一定的动态性和不可预测性。"
+  },
+  {
+    "band_name": "5.3GHz UNII-2A",
+    "frequency_range_mhz": [5250, 5350],
+    "common_usage": "DFS频段，无人机视频和遥测备用频段，部分高端无人机主视频链路",
+    "drone_models_using": ["DJI Matrice 350 RTK", "Autel EVO Max 4T"],
+    "jammer_type": "rf_jamming_5.3ghz",
+    "jammer_power_w": 20,
+    "effective_range_km": 1.5,
+    "notes": "UNII-2A频段需要DFS（雷达检测和避让），无人机使用相对较少。但高端企业级无人机可能使用此频段以获得更干净的频谱环境。干扰时需注意不要触发机场气象雷达的虚假告警。"
+  },
+  {
+    "band_name": "5.5GHz UNII-2C",
+    "frequency_range_mhz": [5470, 5725],
+    "common_usage": "DFS频段扩展，WiFi 5/6大带宽应用，部分无人机高性能视频链路",
+    "drone_models_using": ["DJI Matrice 350 RTK", "Autel EVO Max 4T", "DJI Mavic 3 Thermal"],
+    "jammer_type": "rf_jamming_5.5ghz",
+    "jammer_power_w": 20,
+    "effective_range_km": 1.5,
+    "notes": "UNII-2C频段提供了255MHz的连续带宽，适合80MHz甚至160MHz的宽带视频传输。最新一代的企业级无人机开始在自动频段选择中包含此频段。干扰器通常与5.8GHz频段合并覆盖（5.47-5.875GHz）。"
+  },
+  {
+    "band_name": "5.8GHz ISM",
+    "frequency_range_mhz": [5725, 5875],
+    "common_usage": "FPV模拟/数字视频传输，消费级无人机主视频下传频段，竞速无人机控制和视频",
+    "drone_models_using": ["DJI Mavic 3", "DJI Mini 3 Pro", "DJI Phantom 4 Pro", "DJI Avata 2", "DJI FPV drone", "DJI Mavic 3 Thermal", "Autel EVO II Pro", "Autel EVO Max 4T", "Fimi X8 SE", "DIY 5-inch Freestyle FPV", "DIY 7-inch Long Range FPV", "DIY Cinewhoop FPV", "Walkera F210", "Hubsan Zino Mini Pro"],
+    "jammer_type": "rf_jamming_5.8ghz",
+    "jammer_power_w": 20,
+    "effective_range_km": 1.5,
+    "notes": "5.8GHz是FPV视频传输和大部分消费级无人机视频下传的首选频段。FPV模拟视频使用FM调制（典型6-8MHz带宽），数字系统使用OFDM（20-60MHz带宽）。此频段的干扰对阻断无人机实时视频回传效果最好，是反无人机作战中最关键的干扰频段之一。"
+  },
+  {
+    "band_name": "UHF Military SATCOM",
+    "frequency_range_mhz": [240, 400],
+    "common_usage": "军用卫星通信上行/下行，超视距无人机指挥控制，加密战场数据链",
+    "drone_models_using": ["Bayraktar TB2", "Wing Loong I", "RQ-11 Raven"],
+    "jammer_type": "uhf_jamming",
+    "jammer_power_w": 200,
+    "effective_range_km": 5.0,
+    "notes": "军用UHF SATCOM频段用于MALE级无人机超视距指挥控制。干扰此频段需要大功率和精确的频率锁定，因为军用SATCOM使用跳频和扩频技术。干扰机需要电子支援措施（ESM）系统配合进行实时频率跟踪。200W以上的辐射功率可能影响正常卫星通信服务，需谨慎使用。"
+  },
+  {
+    "band_name": "C-band SATCOM",
+    "frequency_range_mhz": [3700, 4200],
+    "common_usage": "卫星通信下行链路，宽带无人机情报下传，商用卫星通信",
+    "drone_models_using": ["Bayraktar TB2", "Wing Loong I"],
+    "jammer_type": "c_band_jamming",
+    "jammer_power_w": 200,
+    "effective_range_km": 3.0,
+    "notes": "C-band SATCOM用于宽带情报数据下传（全动态视频、SAR图像等）。干扰此频段可阻断无人机向地面站回传侦察数据，但不影响其自主飞行和武器投放（因为武器制导可能使用机载传感器而非SATCOM）。需要评估干扰对合法卫星通信业务的影响。"
+  }
+]

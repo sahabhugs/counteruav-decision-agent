@@ -1,0 +1,84 @@
+package rules.l2_doctrine;
+
+import com.counteruav.model.*;
+import com.counteruav.model.Target.DroneCategory;
+import com.counteruav.model.Target.StrategyType;
+import java.util.List;
+import java.util.ArrayList;
+
+function void addStrategyRule(Target t, String ruleId) {
+    if (t.getMatchedRules() == null) {
+        t.setMatchedRules(new ArrayList<String>());
+    }
+    t.getMatchedRules().add(ruleId);
+}
+
+// distance函数已在同包的threat_classification.drl中定义，此处复用
+
+rule "L2-030: 消费级多旋翼射频干扰"
+agenda-group "strategy-match"
+salience 80
+when
+    $t : Target(droneCategory == DroneCategory.CONSUMER_QUADCOPTER, primaryStrategy == null)
+    $req : DecisionRequest()
+    eval(distance($t.getPosition(), $req.getDefenseCenter()) < 3000)
+then
+    $t.setPrimaryStrategy(StrategyType.RF_JAMMING);
+    $t.setSecondaryStrategy(StrategyType.MONITOR);
+    $t.setDecisionSource("L2_DOCTRINE");
+    addStrategyRule($t, "L2-030");
+end
+
+rule "L2-031: 军用固定翼导航诱骗+激光"
+agenda-group "strategy-match"
+salience 85
+when
+    $t : Target(droneCategory == DroneCategory.MILITARY_FIXED_WING, primaryStrategy == null)
+    $req : DecisionRequest()
+    eval(distance($t.getPosition(), $req.getDefenseCenter()) < 10000)
+then
+    $t.setPrimaryStrategy(StrategyType.GNSS_SPOOFING);
+    $t.setSecondaryStrategy(StrategyType.LASER_DESTRUCTION);
+    $t.setDecisionSource("L2_DOCTRINE");
+    addStrategyRule($t, "L2-031");
+end
+
+rule "L2-032: 集群蜂群全频段干扰"
+agenda-group "strategy-match"
+salience 90
+when
+    $t : Target(droneCategory == DroneCategory.CLUSTER_SWARM, primaryStrategy == null)
+then
+    $t.setPrimaryStrategy(StrategyType.FULL_BAND_JAMMING);
+    $t.setSecondaryStrategy(StrategyType.HPM_PULSE);
+    $t.setDecisionSource("L2_DOCTRINE");
+    $t.setEscalationReason(($t.getEscalationReason() != null ? $t.getEscalationReason() + "；" : "") + "集群蜂群威胁，使用全频段干扰为主，高功率微波脉冲为辅");
+    addStrategyRule($t, "L2-032");
+end
+
+rule "L2-033: 未知极危目标全面响应"
+agenda-group "strategy-match"
+salience 88
+when
+    $t : Target(droneCategory == DroneCategory.UNKNOWN, threatLevel == ThreatLevel.CRITICAL, primaryStrategy == null)
+then
+    $t.setPrimaryStrategy(StrategyType.FULL_BAND_JAMMING);
+    $t.setSecondaryStrategy(StrategyType.LASER_DESTRUCTION);
+    $t.setDecisionSource("L2_DOCTRINE");
+    $t.setEscalationReason(($t.getEscalationReason() != null ? $t.getEscalationReason() + "；" : "") + "未知机型极危目标，全频段干扰+激光摧毁待命");
+    addStrategyRule($t, "L2-033");
+end
+
+rule "L2-034: 单目标低威胁远距监视"
+agenda-group "strategy-match"
+salience 5
+when
+    $t : Target(threatLevel == ThreatLevel.LOW, primaryStrategy == null)
+    $req : DecisionRequest()
+    eval(distance($t.getPosition(), $req.getDefenseCenter()) > 5000)
+then
+    $t.setPrimaryStrategy(StrategyType.MONITOR);
+    $t.setSecondaryStrategy(StrategyType.NONE);
+    $t.setDecisionSource("L2_DOCTRINE");
+    addStrategyRule($t, "L2-034");
+end

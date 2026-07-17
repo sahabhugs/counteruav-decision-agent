@@ -1,0 +1,203 @@
+package rules.l3_tactical;
+
+import com.counteruav.model.*;
+import com.counteruav.model.Target.*;
+import com.counteruav.model.Device.*;
+import java.util.List;
+import java.util.ArrayList;
+
+// ===== L3战术层规则：多目标协同、资源分配、威胁优先级 =====
+// 该层规则处理多目标场景下的协同推理和资源调度决策
+
+function void addL3Rule(Target t, String ruleId) {
+    if (t.getMatchedRules() == null) {
+        t.setMatchedRules(new ArrayList<String>());
+    }
+    t.getMatchedRules().add(ruleId);
+}
+
+function double distance(LatLonAlt p1, LatLonAlt p2) {
+    double R = 6371000;
+    double dLat = Math.toRadians(p2.getLat() - p1.getLat());
+    double dLon = Math.toRadians(p2.getLon() - p1.getLon());
+    double a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+               Math.cos(Math.toRadians(p1.getLat())) * Math.cos(Math.toRadians(p2.getLat())) *
+               Math.sin(dLon/2) * Math.sin(dLon/2);
+    double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+}
+
+// ===== 多目标协同威胁升级 =====
+
+// 辅助函数: 统计在防御中心指定距离内的目标数量
+function int countTargetsInRange(DecisionRequest req, double rangeM) {
+    int count = 0;
+    List<Target> targets = req.getTargets();
+    if (targets != null) {
+        for (int i = 0; i < targets.size(); i++) {
+            Target t = (Target) targets.get(i);
+            if (distance(t.getPosition(), req.getDefenseCenter()) < rangeM) {
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
+// 辅助函数: 统计指定类别的目标数量
+function int countTargetsByCategory(DecisionRequest req, DroneCategory category) {
+    int count = 0;
+    List<Target> targets = req.getTargets();
+    if (targets != null) {
+        for (int i = 0; i < targets.size(); i++) {
+            Target t = (Target) targets.get(i);
+            if (t.getDroneCategory() == category) {
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
+// 辅助函数: 统计高威胁(level>=4)目标数量
+function int countHighThreatTargets(DecisionRequest req) {
+    int count = 0;
+    List<Target> targets = req.getTargets();
+    if (targets != null) {
+        for (int i = 0; i < targets.size(); i++) {
+            Target t = (Target) targets.get(i);
+            if (t.getThreatLevel() != null && t.getThreatLevel().getLevel() >= 4) {
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
+// 辅助函数: 统计在线设备数量
+function int countOnlineDevices(DecisionRequest req) {
+    int count = 0;
+    List<Device> devices = req.getAvailableDevices();
+    if (devices != null) {
+        for (int i = 0; i < devices.size(); i++) {
+            Device d = (Device) devices.get(i);
+            if (d.getStatus() == DeviceStatus.ONLINE) {
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
+rule "L3-001: 多目标同时抵近(≥3个目标在3km内)"
+agenda-group "threat-escalation"
+salience 90
+when
+    $req : DecisionRequest()
+    $t : Target(threatLevel != null)
+    eval(countTargetsInRange($req, 3000) >= 3)
+then
+    int currentLevel = $t.getThreatLevel().getLevel();
+    if (currentLevel < 5) {
+        $t.setThreatLevel(ThreatLevel.fromLevel(currentLevel + 1));
+        $t.setThreatScore(Math.min(100, $t.getThreatScore() + 15));
+        $t.setEscalationReason(($t.getEscalationReason() != null ? $t.getEscalationReason() + "；" : "") + "多目标协同抵近(>=3个目标在3km内)，威胁升级");
+    }
+    addL3Rule($t, "L3-001");
+end
+
+rule "L3-002: 蜂群数量判定(≥5个集群类目标)"
+agenda-group "threat-escalation"
+salience 95
+when
+    $t : Target(droneCategory == DroneCategory.CLUSTER_SWARM, threatLevel != null)
+    $req : DecisionRequest()
+    eval(countTargetsByCategory($req, DroneCategory.CLUSTER_SWARM) >= 5)
+then
+    $t.setThreatLevel(ThreatLevel.CRITICAL);
+    $t.setThreatScore(Math.min(100, $t.getThreatScore() + 25));
+    $t.setEscalationReason(($t.getEscalationReason() != null ? $t.getEscalationReason() + "；" : "") + "大规模蜂群攻击(>=5个蜂群目标)，威胁升级至极危");
+    addL3Rule($t, "L3-002");
+end
+
+// ===== 防御区域态势分析 =====
+
+rule "L3-010: 核心防御圈侵入(500m内)"
+agenda-group "roe"
+salience 100
+when
+    $t : Target(threatLevel != null)
+    $req : DecisionRequest()
+    eval(distance($t.getPosition(), $req.getDefenseCenter()) < 500)
+then
+    // 500m核心圈内，标记为紧急
+    if ($t.getThreatLevel().getLevel() < 4) {
+        $t.setThreatLevel(ThreatLevel.fromLevel($t.getThreatLevel().getLevel() + 1));
+        $t.setThreatScore(Math.min(100, $t.getThreatScore() + 20));
+    }
+    $t.setEscalationReason(($t.getEscalationReason() != null ? $t.getEscalationReason() + "；" : "") + "核心防御圈侵入(距离<500m)，立即升级");
+    addL3Rule($t, "L3-010");
+end
+
+rule "L3-011: 空域入侵态势评估"
+agenda-group "strategy-match"
+salience 50
+when
+    $t : Target(threatLevel != null, primaryStrategy == null)
+    $req : DecisionRequest()
+    eval(distance($t.getPosition(), $req.getDefenseCenter()) < 2000)
+then
+    // 中近距离的默认策略建议
+    if ($t.getThreatLevel().getLevel() >= 4) {
+        $t.setPrimaryStrategy(StrategyType.FULL_BAND_JAMMING);
+        $t.setSecondaryStrategy(StrategyType.LASER_DESTRUCTION);
+        $t.setDecisionSource("L3_TACTICAL");
+    } else if ($t.getThreatLevel().getLevel() >= 3) {
+        $t.setPrimaryStrategy(StrategyType.RF_JAMMING);
+        $t.setSecondaryStrategy(StrategyType.GNSS_SPOOFING);
+        $t.setDecisionSource("L3_TACTICAL");
+    }
+    addL3Rule($t, "L3-011");
+end
+
+// ===== 资源分配优化 =====
+
+rule "L3-020: 高威胁多目标设备冲突警告"
+agenda-group "roe"
+salience 80
+when
+    $req : DecisionRequest()
+    eval(countHighThreatTargets($req) > countOnlineDevices($req))
+then
+    // 高威胁目标数超过在线设备数，需要优先级排序
+    System.out.println("[L3战术层] 警告: 高威胁目标数超过可用设备数，需优先级排序");
+end
+
+// ===== 电磁环境自适应 =====
+
+rule "L3-030: 强电磁干扰环境自适应降功率"
+agenda-group "strategy-match"
+salience 70
+when
+    $req : DecisionRequest(environment != null,
+           environment.emEnvironmentDesc != null,
+           environment.emEnvironmentDesc contains "强干扰")
+    $t : Target(primaryStrategy in (StrategyType.RF_JAMMING, StrategyType.FULL_BAND_JAMMING))
+then
+    $t.setEscalationReason(($t.getEscalationReason() != null ? $t.getEscalationReason() + "；" : "") + "L3战术层: 强电磁干扰环境，建议降功率/切换频段");
+    addL3Rule($t, "L3-030");
+end
+
+rule "L3-031: 恶劣天气自适应(能见度低时避免激光)"
+agenda-group "strategy-match"
+salience 65
+when
+    $req : DecisionRequest(environment != null,
+           environment.visibilityM < 1000)
+    $t : Target(primaryStrategy == StrategyType.LASER_DESTRUCTION)
+then
+    $t.setPrimaryStrategy(StrategyType.RF_JAMMING);
+    $t.setSecondaryStrategy(StrategyType.KINETIC_INTERCEPT);
+    $t.setEscalationReason(($t.getEscalationReason() != null ? $t.getEscalationReason() + "；" : "") + "L3战术层: 低能见度(" + String.format("%.0f", $req.getEnvironment().getVisibilityM()) + "m)，激光效能下降，切换为主射频干扰");
+    addL3Rule($t, "L3-031");
+end

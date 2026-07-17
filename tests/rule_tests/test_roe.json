@@ -1,0 +1,161 @@
+{
+  "test_suite": "交战规则(ROE)约束测试",
+  "module": "L2 - rules_of_engagement.drl",
+  "test_cases": [
+    {
+      "test_id": "TC-ROE-001",
+      "description": "威胁等级<4 + 请求激光摧毁 → 应被阻止",
+      "rule": "L2-020",
+      "input": {
+        "target": {
+          "target_id": "T-ROE-001",
+          "threatLevel": 3,
+          "isOverCivilianArea": false
+        },
+        "action_plan": {
+          "action_type": "LASER_DESTRUCTION"
+        }
+      },
+      "expected": {
+        "blocked": true,
+        "blockReason_contains": "威胁等级不足"
+      }
+    },
+    {
+      "test_id": "TC-ROE-002",
+      "description": "威胁等级=4 + 请求激光摧毁 → 允许",
+      "rule": "L2-020",
+      "input": {
+        "target": {
+          "target_id": "T-ROE-002",
+          "threatLevel": 4,
+          "isOverCivilianArea": false
+        },
+        "action_plan": {
+          "action_type": "LASER_DESTRUCTION"
+        }
+      },
+      "expected": {
+        "blocked": false
+      }
+    },
+    {
+      "test_id": "TC-ROE-003",
+      "description": "民用区域 + 威胁<5 + 激光摧毁 → 阻止",
+      "rule": "L2-021",
+      "input": {
+        "target": {
+          "target_id": "T-ROE-003",
+          "threatLevel": 4,
+          "isOverCivilianArea": true
+        },
+        "action_plan": {
+          "action_type": "LASER_DESTRUCTION"
+        }
+      },
+      "expected": {
+        "blocked": true,
+        "blockReason_contains": "平民区域"
+      }
+    },
+    {
+      "test_id": "TC-ROE-004",
+      "description": "民用区域 + 威胁=5 + 激光摧毁 → 允许（极危例外）",
+      "rule": "L2-021",
+      "input": {
+        "target": {
+          "target_id": "T-ROE-004",
+          "threatLevel": 5,
+          "isOverCivilianArea": true
+        },
+        "action_plan": {
+          "action_type": "LASER_DESTRUCTION"
+        }
+      },
+      "expected": {
+        "blocked": false
+      }
+    },
+    {
+      "test_id": "TC-ROE-005",
+      "description": "民用区域 + 动能撞击 → 阻止",
+      "rule": "L2-021",
+      "input": {
+        "target": {
+          "target_id": "T-ROE-005",
+          "threatLevel": 4,
+          "isOverCivilianArea": true
+        },
+        "action_plan": {
+          "action_type": "KINETIC_IMPACT"
+        }
+      },
+      "expected": {
+        "blocked": true
+      }
+    },
+    {
+      "test_id": "TC-ROE-006",
+      "description": "民用区域 + 射频干扰 → 允许（软杀伤无附带损伤）",
+      "rule": "L2-022",
+      "input": {
+        "target": {
+          "target_id": "T-ROE-006",
+          "threatLevel": 4,
+          "isOverCivilianArea": true
+        },
+        "action_plan": {
+          "action_type": "RF_JAMMING_2G4_5G8"
+        }
+      },
+      "expected": {
+        "blocked": false
+      }
+    },
+    {
+      "test_id": "TC-ROE-007",
+      "description": "附近有己方航空器 + 任何干扰 → 延迟执行",
+      "rule": "L2-023",
+      "input": {
+        "target": {
+          "target_id": "T-ROE-007",
+          "threatLevel": 3
+        },
+        "environment": {
+          "friendly_aircraft_nearby": true
+        },
+        "action_plan": {
+          "action_type": "RF_JAMMING_FULL_BAND"
+        }
+      },
+      "expected": {
+        "delayed": true,
+        "delayReason_contains": "协调"
+      }
+    },
+    {
+      "test_id": "TC-ROE-008",
+      "description": "干扰设备自干扰范围内 → 降低功率",
+      "rule": "L2-024",
+      "input": {
+        "target": {
+          "target_id": "T-ROE-008",
+          "distance": 100,
+          "threatLevel": 4
+        },
+        "device": {
+          "type": "rf_jammer",
+          "self_interference_range_m": 200
+        },
+        "action_plan": {
+          "action_type": "RF_JAMMING_FULL_BAND",
+          "params": {"power_level": "MAX"}
+        }
+      },
+      "expected": {
+        "params_modified": true,
+        "new_power_level": "REDUCED"
+      }
+    }
+  ]
+}
