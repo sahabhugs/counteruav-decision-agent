@@ -38,22 +38,35 @@
 │                    │                                  │  │
 │                    │  ┌──────────────────────┐        │  │
 │                    │  │  置信度门控路由器     │        │  │
+│                    │  │  (六维计算+可配阈值)  │        │  │
 │                    │  └──────┬───────────────┘        │  │
 │                    │         │                        │  │
-│                    │  conf≥0.80    conf<0.80           │  │
+│                    │  conf≥阈值    conf<阈值            │  │
 │                    │     │            │                │  │
 │                    │     ▼            ▼                │  │
 │                    │ ┌────────┐ ┌──────────────┐      │  │
 │                    │ │ 规则引擎 │ │ LLM Agent    │      │  │
 │                    │ │ Drools  │ │ Qwen3-8B     │      │  │
 │                    │ │ (<10ms) │ │ ReAct (2-5s)  │      │  │
+│                    │ │        │ │ +预注入TOPSIS │      │  │
 │                    │ └───┬────┘ └──────┬───────┘      │  │
 │                    │     │            │                │  │
 │                    │     └─────┬──────┘                │  │
 │                    │           ▼                       │  │
 │                    │    ┌──────────────┐               │  │
+│                    │    │ ROE硬约束过滤 │ ← 新增        │  │
+│                    │    │ (Drools L2)  │               │  │
+│                    │    └──────┬───────┘               │  │
+│                    │           ▼                       │  │
+│                    │    ┌──────────────┐               │  │
+│                    │    │ 操作风险分级  │ ← 新增        │  │
+│                    │    │ L可逆/M半/H不 │               │  │
+│                    │    └──────┬───────┘               │  │
+│                    │           ▼                       │  │
+│                    │    ┌──────────────┐               │  │
 │                    │    │  建议方案输出  │               │  │
-│                    │    │  → 指挥员确认  │               │  │
+│                    │    │  L:自动执行   │               │  │
+│                    │    │  H:指挥员确认  │               │  │
 │                    │    └──────────────┘               │  │
 │                    └──────────────────────────────────┘  │
 └──────────────────────────────────────────────────────────┘
@@ -62,9 +75,11 @@
 **关键设计原则**：
 
 - **规则引擎 100% 覆盖**：每帧数据都过规则引擎，保证即使 LLM 不可用，核心功能正常
-- **LLM 按需调用**：仅低置信度/异常情况触发，限流器保证不会过载
-- **LLM 输出为建议方案**：不直接下发武器系统，必须经指挥员确认
-- **规则持续进化**：LLM 的确认决策自动回填为 L4 规则，经审核后提升至 L3
+- **LLM 按需调用**：仅低置信度/异常情况触发，威胁等级感知限流器保证高威胁目标优先
+- **ROE 硬约束过滤**：所有 LLM 输出经 Drools L2 规则二次校验，违规建议自动拦截
+- **操作风险分级**：可逆操作（干扰/诱骗）自动执行，不可逆操作（激光/动能）强制人工确认
+- **规则持续进化**：战后异步批处理 → 冲突检测 → 量化标准升级（≥5次匹配+≥80%确认率 L4→L3）
+- **模型能力可验证**：阶段 1 模型验证关卡 + 阶段 2 置信度阈值校准实验
 
 ---
 
@@ -111,26 +126,34 @@ LangGraph / CrewAI / AutoGen 等框架的抽象层级（StateGraph、多 Agent �
 
 ```
 ┌─────────────────────────────────────────────────┐
-│ L4: 经验优化层（动态、每次战后更新）               │
+│ L4: 经验优化层（动态、战后异步批处理）               │
 │ - 地形适配参数、阈值微调、新发现的战术模式          │
-│ - 来源：LLM 提议 → 人工审核 → MySQL + Git         │
+│ - 来源：战后批处理扫描 APPROVED 决策 → 聚类提炼    │
+│ - → 冲突检测（交叉验证 L2/L3）→ 人工审核          │
 │ - 形式：结构化 JSON                              │
 │ - 更新频率：每次作战/演习后                        │
+│ - 升级条件 L4→L3: ≥5次匹配 + ≥80%确认率 + 无冲突  │
+│          + ≥1次实弹/仿真验证                      │
 ├─────────────────────────────────────────────────┤
-│ L3: 战术策略层（半静态、随情报更新）               │
+│ L3: 战术策略层（半静态、验证后升级）               │
 │ - 无人机型号→反制优选、集群→压制通信频段           │
-│ - 来源：型号知识库 JSON + 策略模板 JSON            │
+│ - 来源：L4 升级 + 型号知识库 JSON + 策略模板 JSON  │
 │ - 形式：结构化 JSON + Drools .drl                │
 │ - 更新频率：随情报数据库更新                       │
+│ - 升级条件 L3→L2: ≥20次匹配 + ≥95%确认率          │
+│          + 领域专家委员会审核                      │
+│ - 降级条件: 任意规则驳回率 >30% → 自动降一级       │
 ├─────────────────────────────────────────────────┤
 │ L2: 作战条例层（基本静态、随条令更新）             │
 │ - 5级威胁判定标准、交战规则(ROE)、武器授权边界      │
-│ - 来源：条令文档 + 领域专家                        │
+│ - 来源：条令文档 + 领域专家 + L3 长期验证后升级    │
 │ - 形式：Drools .drl 文件                        │
 │ - 更新频率：随条令修订                            │
 ├─────────────────────────────────────────────────┤
 │ L1: 物理定律层（永久静态）                        │
 │ - 雷达方程、光电作用距离、干扰功率计算             │
+│   + predict_trajectory 轨迹预测（运动学公式）     │
+│   + simulate_action 距离衰减/干扰比计算           │
 │ - 来源：物理公式                                 │
 │ - 形式：Java 静态工具类                          │
 │ - 更新频率：几乎永不                              │
@@ -497,35 +520,59 @@ end
 │ - L4 经验规则匹配                 │
 │ - 输出：威胁等级 + 推荐策略       │
 │   + 置信度分数 [0, 1]            │
+│ - 附带输出：TOPSIS 五维分数      │  ← 预计算，随 situation 注入 LLM
+│   + 已匹配规则列表 + 冲突信息     │
 └──────────┬──────────────────────┘
            │
-    置信度 ≥ 0.80? ─── Yes ──→ 直接写入建议方案队列
+    置信度 ≥ 0.80? ─── Yes ──→ 进入「操作风险分级」→ 写入建议方案队列
            │
           No
            │
            ▼
 ┌─────────────────────────────────┐
 │ 阶段2: 限流器检查                │
-│ - 全局冷却计时器                 │
-│ - 分钟调用计数                   │
-│ - 同目标调用计数                 │
+│ - 全局冷却计时器                  │
+│ - 分钟调用计数                    │
+│ - 同目标调用计数                  │
+│ - ★ 威胁等级感知: 高威胁可打断冷却 │
 └──────────┬──────────────────────┘
            │
-      未达限流? ─── No ──→ 降级：使用次优规则方案 + 标记 "未深度推理"
-           │
+      未达限流? ─── No ──→ 降级：使用保守策略（全频段压制等）+
+           │                     标记 "未深度推理"
           Yes
            │
            ▼
 ┌─────────────────────────────────┐
 │ 阶段3: LLM Agent 深度推理        │
 │ - ReAct 模式: 思考→工具调用循环  │
-│ - 最大 5 轮 / 10 秒超时          │
-│ - 输出：决策 + 解释 + 规则建议   │
+│ - 最大 5 轮有效推理 / 10 秒超时   │
+│ - situation 预注入 TOPSIS 等结果  │
+│ - 输出：决策 + 解释              │
 └──────────┬──────────────────────┘
            │
            ▼
-    写入建议方案队列 → 指挥员确认 → 执行
+┌─────────────────────────────────┐
+│ 阶段4: ROE 硬约束过滤 (新增)      │  ← LLM 输出不直接入队
+│ - 复用 Drools L2 ROE 规则        │
+│ - 检查 LLM 建议是否违反交战规则   │
+│ - 违规 → 拦截 + 标记 BLOCKED_BY_ROE│
+│   + 降级为规则引擎保守方案         │
+│ - 通过 → 继续                    │
+└──────────┬──────────────────────┘
+           │
+           ▼
+    进入「操作风险分级」→ 写入建议方案队列 → 指挥员确认/自动执行
 ```
+
+**操作风险分级（新增）**：
+
+| 风险等级 | 操作类型 | 示例 | 执行方式 |
+|---------|---------|------|---------|
+| **L-可逆** | 可逆电子对抗 | 射频干扰、GNSS诱骗、通信压制 | 自动执行 + 通知指挥员 |
+| **M-半可逆** | 有附带影响的电子对抗 | 全频段压制（可能影响己方通信）、高功率微波 | 自动执行 + 强制通知 + 5秒内可撤销 |
+| **H-不可逆** | 硬杀伤 | 激光摧毁、动能打击 | **强制人工确认**，不可自动执行 |
+
+> **设计原则**：可逆操作不浪费指挥员带宽，不可逆操作守住安全底线。所有 LLM 建议经过 ROE 过滤 + 风险分级后才进入执行队列。
 
 ### 4.2 置信度计算模型
 
@@ -541,31 +588,37 @@ public class ConfidenceCalculator {
      */
     public double calculate(Target target, List<Rule> matchedRules, SensorStatus sensors) {
 
-        double[] weights = {0.30, 0.25, 0.20, 0.15, 0.10};
-        double[] scores = new double[5];
+        // 冷启动阶段: 维度5 权重降为0，释放权重分配给维度1和维度2
+        // 热启动后 (feedback_log >= 100条记录): 恢复完整六维权重
+        boolean isColdStart = decisionFeedbackRepo.count() < 100;
+        double[] weights = isColdStart
+            ? new double[]{0.35, 0.30, 0.20, 0.15, 0.00, 0.00}  // 冷启动: 历史+一致性暂无参考
+            : new double[]{0.25, 0.20, 0.15, 0.15, 0.10, 0.15};  // 热启动: 六维完整权重
+        double[] scores = new double[6];
 
-        // 维度1 (权重 0.30): 规则一致性分数
-        // 匹配到的规则是否给出了一致的结论
+        // 维度1: 规则一致性分数
         scores[0] = ruleConsistency(matchedRules);
 
-        // 维度2 (权重 0.25): 传感器数据质量
-        // 各传感器 SNR 的加权平均归一化值
+        // 维度2: 传感器数据质量
         scores[1] = sensorQuality(sensors);
 
-        // 维度3 (权重 0.20): 目标识别确定性
-        // EVT 开集识别的最大类别置信度
+        // 维度3: 目标识别确定性
         scores[2] = target.getMaxClassConfidence();
 
-        // 维度4 (权重 0.15): 规则覆盖完整度
-        // L1-L4 每层至少匹配到一条规则的比例
+        // 维度4: 规则覆盖完整度
         scores[3] = ruleCoverage(matchedRules);
 
-        // 维度5 (权重 0.10): 历史相似案例匹配度
-        // 最近 N 个相似案例中规则引擎方案被确认的比例
+        // 维度5: 历史相似案例匹配度
+        // 冷启动阶段默认值 0.5，权重为0时不参与计算
         scores[4] = historicalAccuracy(target);
 
+        // 维度6 (新增): 行为-型号一致性
+        // 比较目标运动特征与识别型号的已知参数范围
+        // 不一致时 → 低分 → 降低综合置信度 → 触发 LLM
+        scores[5] = behaviorTypeConsistency(target);
+
         double confidence = 0;
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 6; i++) {
             confidence += weights[i] * scores[i];
         }
 
@@ -600,10 +653,56 @@ public class ConfidenceCalculator {
         // 冷启动阶段返回 0.5（中性值）
         return decisionFeedbackRepo.findAccuracyByTargetProfile(target);
     }
+
+    /**
+     * 维度6: 行为-型号一致性检查
+     *
+     * 防止识别模块自信犯错:
+     *   识别为 consumer_quadcopter (max_speed=21m/s) 但实际 radial_speed=35m/s
+     *   → 不一致 → 低分 → 降低综合置信度 → 强制触发 LLM
+     *
+     * 检查逻辑:
+     *   1. 从知识库加载识别型号的已知参数范围 (max_speed, max_altitude, typical_freq_bands)
+     *   2. 将目标实际参数与型号参数范围逐一比对
+     *   3. 每项一致得 1.0，不一致得 0.0，取平均
+     */
+    private double behaviorTypeConsistency(Target target) {
+        DroneKnowledgeEntry kb = knowledgeBase.findByName(target.getClassification().getDroneType());
+        if (kb == null) return 0.5; // 未知型号，中性值
+
+        int checks = 0;
+        int passed = 0;
+
+        // 检查1: 速度一致性
+        if (kb.getMaxSpeedMs() > 0) {
+            checks++;
+            if (target.getRadialSpeedMs() <= kb.getMaxSpeedMs() * 1.15) passed++;
+            // 允许 15% 容差（顺风/俯冲等）
+        }
+
+        // 检查2: 高度一致性
+        if (kb.getMaxAltitudeM() > 0) {
+            checks++;
+            if (target.getPosition().getAltM() <= kb.getMaxAltitudeM() * 1.10) passed++;
+        }
+
+        // 检查3: 频段一致性
+        if (kb.getFrequencyBands() != null && !kb.getFrequencyBands().isEmpty()
+            && target.getRfSignature() != null) {
+            checks++;
+            double targetFreq = target.getRfSignature().getFrequencyMhz();
+            boolean freqMatch = kb.getFrequencyBands().stream()
+                .anyMatch(band -> frequencyInBand(targetFreq, band));
+            if (freqMatch) passed++;
+        }
+
+        if (checks == 0) return 0.5; // 无检查项，中性值
+        return (double) passed / checks;
+    }
 }
 ```
 
-### 4.3 触发 LLM Agent 的五种条件
+### 4.3 触发 LLM Agent 的六种条件
 
 | # | 条件 | 触发逻辑 | 数据来源 |
 |---|------|---------|---------|
@@ -612,21 +711,23 @@ public class ConfidenceCalculator {
 | 3 | **复合威胁** | 单个目标同时触发 ≥3 个威胁行为标签 | 威胁行为检测模块 |
 | 4 | **资源不足** | `high_threat_target_count > available_device_count` | 设备管理模块 |
 | 5 | **传感器数据质量低** | 主传感器 SNR 低于各自阈值 | 传感器自检状态 |
+| 6 | **行为-型号不一致** | `behaviorTypeConsistency < 0.50`（目标运动特征与识别型号参数范围矛盾） | 置信度计算器维度6 |
 
-### 4.4 限流器
+### 4.4 限流器（威胁等级感知 + 紧急通道）
 
 ```java
 /**
  * LLM Agent 调用限流器
- * 防止异常情况下 LLM 被过度调用导致系统整体延迟上升
+ * 威胁等级感知：高威胁目标可打断冷却、享有更高配额
  */
 @Component
 public class LLMCallRateLimiter {
 
     // ===== 限流参数 =====
-    private static final int MAX_CALLS_PER_MINUTE = 10;    // 全局每分钟上限
-    private static final int MAX_CALLS_PER_TARGET = 3;     // 同目标每分钟上限
-    private static final long COOLDOWN_MS = 5_000;         // 全局冷却 5 秒
+    private static final int MAX_CALLS_PER_MINUTE = 10;        // 全局每分钟软上限
+    private static final int MAX_CALLS_HIGH_THREAT_BONUS = 5;  // 高威胁额外配额
+    private static final long COOLDOWN_MS = 5_000;             // 常规全局冷却 5 秒
+    private static final long COOLDOWN_HIGH_THREAT_MS = 1_000; // 高威胁冷却仅 1 秒
 
     // ===== 滑动窗口计数器 =====
     private final Deque<Long> globalCallTimestamps = new ConcurrentLinkedDeque<>();
@@ -635,13 +736,25 @@ public class LLMCallRateLimiter {
 
     /**
      * 检查是否允许一次新的 LLM 调用
+     * @param targetId 目标ID
+     * @param threatLevel 目标当前威胁等级 (1-5)，用于动态调整限流策略
+     * @param urgent 是否为紧急调用（指挥员手动触发或威胁等级=5）
      * @return true = 允许调用, false = 触发限流
      */
-    public synchronized boolean tryAcquire(String targetId) {
+    public synchronized boolean tryAcquire(String targetId, int threatLevel, boolean urgent) {
         long now = System.currentTimeMillis();
+        boolean isHighThreat = threatLevel >= 4;
 
-        // 检查1: 全局冷却
-        if (now - lastCallTimestamp.get() < COOLDOWN_MS) {
+        // 紧急通道: 威胁等级5 或 指挥员手动触发 → 直接放行
+        if (urgent || threatLevel >= 5) {
+            lastCallTimestamp.set(now);
+            globalCallTimestamps.addLast(now);
+            return true;
+        }
+
+        // 检查1: 全局冷却（高威胁可打断）
+        long effectiveCooldown = isHighThreat ? COOLDOWN_HIGH_THREAT_MS : COOLDOWN_MS;
+        if (now - lastCallTimestamp.get() < effectiveCooldown) {
             logLimitReached("GLOBAL_COOLDOWN", targetId);
             return false;
         }
@@ -652,12 +765,15 @@ public class LLMCallRateLimiter {
                && now - globalCallTimestamps.peekFirst() > 60_000) {
             globalCallTimestamps.pollFirst();
         }
-        if (globalCallTimestamps.size() > MAX_CALLS_PER_MINUTE) {
+        int effectiveLimit = MAX_CALLS_PER_MINUTE
+            + (isHighThreat ? MAX_CALLS_HIGH_THREAT_BONUS : 0);
+        if (globalCallTimestamps.size() > effectiveLimit) {
             logLimitReached("GLOBAL_MINUTE_LIMIT", targetId);
             return false;
         }
 
-        // 检查3: 同目标分钟计数
+        // 检查3: 同目标调用计数（距离越近限制越松）
+        int maxPerTarget = getMaxCallsByThreatLevel(threatLevel);
         Deque<Long> targetTimestamps = targetCallTimestamps
             .computeIfAbsent(targetId, k -> new ConcurrentLinkedDeque<>());
         targetTimestamps.addLast(now);
@@ -665,7 +781,7 @@ public class LLMCallRateLimiter {
                && now - targetTimestamps.peekFirst() > 60_000) {
             targetTimestamps.pollFirst();
         }
-        if (targetTimestamps.size() > MAX_CALLS_PER_TARGET) {
+        if (targetTimestamps.size() > maxPerTarget) {
             logLimitReached("TARGET_LIMIT", targetId);
             return false;
         }
@@ -673,6 +789,18 @@ public class LLMCallRateLimiter {
         // 通过所有检查
         lastCallTimestamp.set(now);
         return true;
+    }
+
+    /**
+     * 同目标每分钟 LLM 调用上限 — 威胁等级越高限制越松
+     */
+    private int getMaxCallsByThreatLevel(int threatLevel) {
+        switch (threatLevel) {
+            case 5: return Integer.MAX_VALUE; // 极危：不限制
+            case 4: return 6;                  // 高危：每 10 秒可推理一次
+            case 3: return 3;                  // 中危：每 20 秒
+            default: return 2;                 // 低危：每 30 秒
+        }
     }
 
     /**
@@ -788,7 +916,9 @@ Think: 信息已足够。虽然型号不确定，但运动特征极度危险：
 → 输出最终决策 JSON
 ```
 
-### 5.3 五个 Tool 定义
+### 5.3 六个 Tool 定义
+
+> **设计变更说明**：`propose_new_rule` 已从实时 Tool 列表中移除，改为战后异步批处理（见阶段 2 规则回填机制）。新增 `predict_trajectory`（轨迹预测）、`simulate_action`（行动效果预测）、`retrieve_similar_cases`（相似案例动态检索）。TOPSIS 结果由规则引擎预注入 situation JSON，`run_topsis` 改为可选假设分析模式。
 
 #### Tool 1: search_rules
 
@@ -828,34 +958,35 @@ def query_knowledge_base(entity_type: str, query: str, top_k: int = 5) -> list[d
     # embedding 模型：bge-small-zh（~100MB，CPU友好）
 ```
 
-#### Tool 3: run_topsis
+#### Tool 3: run_topsis（可选假设分析）
 
 ```python
-def run_topsis(target_id: str) -> dict:
+def run_topsis(target_id: str,
+                exclude_indicators: list[str] = None,
+                custom_weights: dict = None) -> dict:
     """
-    执行确定性的 IFN-TOPSIS 威胁评估计算。
+    执行 IFN-TOPSIS 威胁评估计算（可选假设分析模式）。
+
+    注意：规则引擎在触发 LLM 时已将默认 TOPSIS 结果预注入 situation JSON
+    的 precomputed 字段。Agent 通常无需调用此 Tool，除非需要：
+    - 排除某个异常传感器维度后重新计算
+    - 自定义指标权重进行灵敏度分析
 
     参数:
         target_id: 目标唯一标识
+        exclude_indicators: 排除的指标维度列表（如 ["sensor_snr"]）
+        custom_weights: 自定义权重 {"distance": 0.35, "speed": 0.30, ...}
 
     返回:
         {
             "target_id": "...",
             "threat_score": 0.0-1.0,
             "threat_level": 1-5,
-            "indicator_scores": {
-                "distance": 0.87,
-                "speed": 0.92,
-                "intent": 0.65,
-                "dwell_time": 0.30,
-                "drone_type": 0.50
-            },
-            "positive_ideal_distance": 0.12,
-            "negative_ideal_distance": 0.78
+            "indicator_scores": {...},
+            "note": "假设分析结果，非默认参数"
         }
     """
-    # 实现：通过 HTTP 调用 Java 后端的 TOPSIS 服务
-    # 这保证了 LLM 和规则引擎使用的是同一个确定性算法
+    # 实现：通过 HTTP 调用 Java 后端的 TOPSIS 服务，传入可选参数
 ```
 
 #### Tool 4: check_device_status
@@ -872,28 +1003,118 @@ def check_device_status() -> list[dict]:
         - effective_range_m, current_target_id (if busy)
         - health_metrics: {snr, power_level, temperature}
     """
-    # 实现：通过 HTTP 调用设备管理 API
 ```
 
-#### Tool 5: propose_new_rule
+#### Tool 5: predict_trajectory（新增）
 
 ```python
-def propose_new_rule(rule_text: str, reason: str, source_decision_id: str) -> dict:
+def predict_trajectory(target_id: str, horizon_s: float = 30.0) -> dict:
     """
-    向 L4 规则候选队列提议一条新规则。
+    基于当前运动状态做线性外推轨迹预测。
 
     参数:
-        rule_text: 规则的自然语言描述
-        reason: 为什么提议这条规则
-        source_decision_id: 触发此提议的决策 ID
+        target_id: 目标唯一标识
+        horizon_s: 预测时间范围（秒），默认 30s
 
     返回:
-        {"proposal_id": "prop-xxx", "status": "PENDING_REVIEW"}
+        {
+            "target_id": "...",
+            "current_position": {"lat": ..., "lon": ..., "alt_m": ...},
+            "predicted_positions": [
+                {"t_s": 5,  "lat": ..., "lon": ..., "alt_m": ..., "distance_to_defense_m": ...},
+                {"t_s": 10, "lat": ..., "lon": ..., "alt_m": ..., "distance_to_defense_m": ...},
+                {"t_s": 15, "lat": ..., "lon": ..., "alt_m": ..., "distance_to_defense_m": ...},
+                {"t_s": 30, "lat": ..., "lon": ..., "alt_m": ..., "distance_to_defense_m": ...}
+            ],
+            "cpa_m": 420,           # 最近接近距离 (Closest Point of Approach)
+            "cpa_time_s": 8.5,      # 到达 CPA 的预计时间
+            "will_enter_no_fly": true,
+            "no_fly_violation_time_s": 6.2
+        }
     """
-    # 实现：写入 MySQL pending_rules 表
-    # 状态流转: PENDING_REVIEW → APPROVED / REJECTED
-    # APPROVED 的规则经形式化后提升至 L3
+    # 实现: L1 物理定律层的简单运动学公式（线性外推 + 地球曲率修正）
+    # 核心逻辑:
+    #   lat(t) = lat_0 + v * cos(heading) * t / 111320.0
+    #   lon(t) = lon_0 + v * sin(heading) * t / (111320.0 * cos(lat_0))
+    #   alt(t) = alt_0 + v_vertical * t
+    #   distance_to_defense = haversine(predicted_pos, defense_center)
 ```
+
+#### Tool 6: simulate_action（新增）
+
+```python
+def simulate_action(target_id: str, action_type: str,
+                    device_id: str = None) -> dict:
+    """
+    预测某反制行动对目标的效果。
+
+    参数:
+        target_id: 目标唯一标识
+        action_type: 反制行动类型 (rf_jamming_*, gnss_spoofing, laser_destruction, ...)
+        device_id: 指定设备（可选，None 则自动匹配最近可用设备）
+
+    返回:
+        {
+            "target_id": "...",
+            "action_type": "...",
+            "device_id": "...",
+            "estimated_effectiveness": 0.0-1.0,  # 综合效果估计
+            "effectiveness_factors": {
+                "range_factor": 0.85,       # 目标是否在设备有效范围内
+                "type_match_factor": 0.90,  # 行动类型与目标脆弱性匹配度
+                "jam_to_signal_ratio_db": 12.5,  # 干扰/信号比
+                "obstruction_factor": 0.95,  # 地形/建筑物遮挡
+            },
+            "risks": {
+                "civilian_interference_risk": "LOW",
+                "friendly_comm_interference": false,
+                "collateral_damage_risk": "NONE",
+                "escalation_risk": "退化为仅惯性导航，目标可能继续直线飞行"
+            },
+            "predicted_outcome": "预计干扰后 3-8 秒内目标失控/返航，成功率约 78%",
+            "limitations": [
+                "目标可能已预设自主航线（无 GNSS 仍可飞行）",
+                "5.8GHz FPV 信号在高功率压制下 95% 概率中断"
+            ]
+        }
+    """
+    # 实现: 查表 + 简化的物理模型
+    # - 型号匹配: 查询知识库 drone_types.json 中的 vulnerable_to / resistant_to
+    # - 距离衰减: 自由空间路径损耗公式 L_fs = 32.45 + 20*log10(d_km) + 20*log10(f_MHz)
+    # - 干扰/信号比: JSR = ERP_jammer - ERP_signal + G_jammer - L_propagation
+```
+
+#### Tool 7: retrieve_similar_cases（新增 — 动态 Few-shot）
+
+```python
+def retrieve_similar_cases(situation_desc: str, top_k: int = 3) -> list[dict]:
+    """
+    从历史成功案例库中检索与当前态势最相似的案例（动态 Few-shot）。
+
+    参数:
+        situation_desc: 当前态势的自然语言描述
+        top_k: 返回最相似的 K 个案例
+
+    返回:
+        [
+            {
+                "case_id": "case-xxx",
+                "similarity": 0.87,
+                "scenario": "未知型号 FPV 高速逼近指挥中心...",
+                "decision_summary": "全频段压制 + GNSS诱骗，威胁等级5",
+                "commander_verdict": "APPROVED",
+                "outcome": "目标失控坠毁，距离指挥中心 320m",
+                "key_lessons": "全频段压制对 DIY FPV 有效，但需预留激光作为最后防线"
+            },
+            ...
+        ]
+    """
+    # 实现: FAISS 向量检索（用 bge-small-zh embedding）
+    # 数据来源: decision_log + feedback_log (仅包含 verdict=APPROVED 的记录)
+    # 冷启动阶段: 返回手工精选的 15 个静态 Few-shot 示例
+```
+
+> **已移除的 Tool**: `propose_new_rule` — 规则提议不再作为实时 Tool，改为战后批处理任务。见阶段 2 "规则回填机制"。
 
 ### 5.4 System Prompt 模板
 
@@ -902,23 +1123,32 @@ def propose_new_rule(rule_text: str, reason: str, source_decision_id: str) -> di
 你的职责是在规则引擎无法高置信度决策时，提供威胁评估和反制策略的推理建议。
 
 ## 身份与权限
-- 你是一个**建议者**，不是执行者。你的所有输出必须经指挥员确认才能执行
+- 你是一个**建议者**，不是执行者。你的所有输出必须经 ROE 硬约束校验后才能进入执行队列
 - 你做出的每个判断必须**引用来源**（规则编号、知识库条目、计算结果）
 - 如果你对任何判断不确定，**必须明确标注不确定性**
+
+## 硬约束（不可违反）
+- 民用区域 (`is_over_civilian_area: true`) + 威胁等级 < 5 → 禁止推荐激光/动能等硬杀伤手段
+- 威胁等级 < 4 → 禁止推荐激光摧毁（ROE L2-020）
+- 任何硬杀伤建议都将被 ROE 过滤层二次校验，违规建议会被自动拦截
 
 ## 可用工具
 1. search_rules(query, layers) — 检索规则库
 2. query_knowledge_base(entity_type, query) — 查询知识库（无人机型号/战例/地形/电磁环境）
-3. run_topsis(target_id) — 执行确定性威胁评估计算
+3. run_topsis(target_id, exclude_indicators?, custom_weights?) — 可选假设分析（默认结果已预注入）
 4. check_device_status() — 查询反制设备实时状态
-5. propose_new_rule(rule_text, reason) — 提议新规则（写入待审核队列）
+5. predict_trajectory(target_id, horizon_s?) — 预测目标轨迹 + CPA 时间
+6. simulate_action(target_id, action_type, device_id?) — 预测反制行动效果与风险
+7. retrieve_similar_cases(situation_desc, top_k?) — 检索历史相似成功案例
 
 ## 推理规则
-- 最多进行 **5 轮** Think-Action-Observe 循环
+- 最多进行 **5 轮有效推理**（格式错误重试不消耗轮数，最多额外重试 2 次）
 - 如果 5 轮后仍无法决策，输出当前最佳判断并标注 "INCOMPLETE_ANALYSIS"
 - 优先使用工具获取信息，**不要凭空猜测**
+- **对于威胁等级 ≥3 的目标，必须至少调用一次 predict_trajectory**
 - 威胁等级判定必须遵守 L2 条令规则，不可自行调整阈值
-- 策略推荐时必须遵守 ROE 约束（如民用区域禁止硬杀伤）
+- 策略推荐时必须遵守 ROE 约束
+- 态势 JSON 的 `precomputed` 字段包含规则引擎的 TOPSIS 结果和已匹配规则列表，可直接使用
 
 ## 当前态势
 {current_situation_json}
@@ -942,14 +1172,10 @@ def propose_new_rule(rule_text: str, reason: str, source_decision_id: str) -> di
     "primary": "主要策略",
     "secondary": "备选策略",
     "priority": 1-N,
+    "risk_level": "L-可逆|M-半可逆|H-不可逆",
     "timing": "immediate|<30s|<60s|<5min",
     "reasoning": "策略选择理由",
     "escalation_condition": "升级条件"
-  },
-  "rule_proposal": {
-    "suggested": true/false,
-    "draft": "建议规则文本",
-    "reason": "建议理由"
   },
   "uncertainty_flags": ["标记不确定性的标签列表"]
 }
@@ -998,7 +1224,7 @@ class ReActEngine:
 
         参数:
             task: 当前任务描述
-            situation: 当前态势 JSON
+            situation: 当前态势 JSON (含 precomputed 字段)
 
         返回:
             结构化决策 JSON
@@ -1007,16 +1233,12 @@ class ReActEngine:
             {"role": "system", "content": self._build_system_prompt(situation)},
             {"role": "user", "content": task},
         ]
-        rounds = 0
+        valid_rounds = 0       # 有效推理轮数（不含格式错误重试）
+        retry_count = 0        # Schema 校验失败重试计数
+        MAX_RETRIES = 2        # 最多额外重试 2 次（不消耗有效轮数）
         start_time = time.time()
 
-        while rounds < self.config.max_rounds:
-            # 超时检查
-            if time.time() - start_time > self.config.timeout_seconds:
-                return self._generate_timeout_decision(messages)
-
-            rounds += 1
-
+        while valid_rounds < self.config.max_rounds:
             # 调用 LLM
             response = self.llm.create_chat_completion(
                 messages=messages,
@@ -1032,18 +1254,28 @@ class ReActEngine:
             final = self._parse_final(assistant_msg)
 
             if final is not None:
-                # 最终输出 → Schema 校验 → 返回
                 validated = self._validate_output(final)
                 if validated:
+                    # 超时兜底: 即使超时，已有结果优先返回
+                    if time.time() - start_time > self.config.timeout_seconds:
+                        validated["uncertainty_flags"].append("RESULT_AFTER_TIMEOUT")
                     return validated
-                # Schema 校验失败 → 要求 LLM 修正
+                # Schema 校验失败 → 不消耗有效轮数，消耗重试配额
+                retry_count += 1
+                if retry_count > MAX_RETRIES:
+                    return self._generate_schema_failure_decision(final)
                 messages.append({
                     "role": "user",
-                    "content": f"输出 JSON Schema 校验失败。请按正确格式重新输出。"
+                    "content": f"输出 JSON Schema 校验失败 (重试 {retry_count}/{MAX_RETRIES})。请按正确格式重新输出。"
                 })
                 continue
 
             if action is not None:
+                valid_rounds += 1  # 有效的工具调用消耗一轮
+                retry_count = 0    # 重置重试计数
+                # 超时检查：执行工具前先检查
+                if time.time() - start_time > self.config.timeout_seconds:
+                    return self._generate_timeout_decision(messages)
                 # 执行工具调用
                 tool_name = action.get("tool")
                 tool_args = action.get("args", {})
@@ -1054,7 +1286,9 @@ class ReActEngine:
                 })
                 continue
 
-            # 既无 Action 也无 Final → 提示继续
+            # 既无 Action 也无 Final → 消耗一轮，提示继续
+            valid_rounds += 1
+            retry_count = 0
             messages.append({
                 "role": "user",
                 "content": "请继续推理。如果已收集足够信息，请输出最终决策。"
@@ -1128,22 +1362,47 @@ class ReActEngine:
         return decision
 
     def _generate_timeout_decision(self, messages: list) -> dict:
-        """超时情况下生成降级决策"""
+        """超时情况下生成降级决策 — 先尝试解析已有输出"""
+        # Step 1: 尝试从最近的 assistant 消息中提取已有的有效决策
+        for msg in reversed(messages):
+            if msg.get("role") == "assistant":
+                final = self._parse_final(msg["content"])
+                if final and self._validate_output(final):
+                    final["uncertainty_flags"] = final.get("uncertainty_flags", [])
+                    final["uncertainty_flags"].append("RESULT_AFTER_TIMEOUT")
+                    return final
+        # Step 2: 无法解析已有输出 → 保守策略降级
         return {
             "decision_id": f"timeout-{int(time.time())}",
             "target_id": "UNKNOWN",
-            "error": "TIMEOUT",
+            "error": "TIMEOUT_NO_VALID_OUTPUT",
             "threat_assessment": {
                 "level": 5,
                 "label": "极危",
                 "confidence": 0.0,
-                "reasoning": "LLM推理超时，采用保守策略：默认最高威胁等级"
+                "reasoning": "LLM推理超时且无法解析已有输出，采用保守策略：默认最高威胁等级"
             },
             "recommended_action": {
-                "primary": "FALLBACK_RULE_ENGINE",
-                "reasoning": "超时降级，使用规则引擎次优方案",
+                "primary": "FALLBACK_CONSERVATIVE",
+                "reasoning": "超时降级，使用保守策略（全频段压制），宁可过度反应不可漏过",
             },
-            "uncertainty_flags": ["TIMEOUT", "DEGRADED_TO_RULE_ENGINE"],
+            "uncertainty_flags": ["TIMEOUT", "DEGRADED_TO_CONSERVATIVE"],
+        }
+
+    def _generate_schema_failure_decision(self, last_attempt: dict) -> dict:
+        """Schema 校验多次失败后的降级 — 保留已解析的部分信息"""
+        return {
+            "decision_id": f"schema-fail-{int(time.time())}",
+            "target_id": last_attempt.get("target_id", "UNKNOWN"),
+            "error": "SCHEMA_VALIDATION_EXHAUSTED",
+            "threat_assessment": last_attempt.get("threat_assessment", {
+                "level": 5, "label": "极危", "confidence": 0.0
+            }),
+            "recommended_action": {
+                "primary": "FALLBACK_RULE_ENGINE",
+                "reasoning": "LLM 输出格式校验失败，降级使用规则引擎方案",
+            },
+            "uncertainty_flags": ["SCHEMA_FAILURE", "DEGRADED_TO_RULE_ENGINE"],
         }
 
     def _generate_max_rounds_decision(self, messages: list) -> dict:
@@ -1253,11 +1512,21 @@ Week 1-2: 确定性引擎（不依赖 LLM）
 
 Week 3-4: LLM Agent
 │
-├── Day 15-17: 基础环境搭建
+├── Day 15-17: 基础环境搭建 + 模型能力验证
 │   ├── llama.cpp 编译（Windows/Linux双平台）
 │   ├── Qwen3-8B GGUF 模型下载 + 量化（Q4_K_M）
 │   ├── bge-small-zh embedding 模型部署
-│   └── FAISS 索引构建
+│   ├── FAISS 索引构建
+│   └── ★ 模型能力验证关卡（新增）:
+│       ├── 用阶段 0 生成的 200-400 个测试用例做端到端评估
+│       ├── 关键指标:
+│       │   ├── 威胁等级判定准确率 (目标 ≥85%)
+│       │   ├── 策略推荐 Top-3 准确率 (目标 ≥80%)
+│       │   ├── ROE 合规率 (目标 100% — 配合硬约束过滤层)
+│       │   └── 平均推理轮数 + 超时率
+│       ├── 如果 Qwen3-8B 准确率 < 80%:
+│       │   └── 触发备选方案: Qwen3-14B Q4_K_M (~9GB) 或 双模型策略
+│       └── 输出: 模型能力验证报告（通过/不通过 + 错误分类分析）
 │
 ├── Day 18-21: ReAct 引擎开发
 │   ├── ReAct 循环引擎（按 5.5 节设计）
@@ -1266,8 +1535,13 @@ Week 3-4: LLM Agent
 │   └── 单元测试
 │
 ├── Day 22-24: Prompt 工程
-│   ├── System Prompt 模板设计
-│   ├── Few-shot 示例编写（10-15个典型场景）
+│   ├── System Prompt 模板设计（含 ROE 硬约束声明 + 操作风险分级要求）
+│   ├── 静态 Few-shot 示例编写（15 个手工精选典型场景，作为冷启动保底）
+│   ├── 动态 Few-shot 检索机制:
+│   │   ├── Tool 7: retrieve_similar_cases — 从历史成功案例库 FAISS 检索
+│   │   ├── 冷启动阶段: 返回静态 15 个示例
+│   │   ├── 热启动后 (≥50 个 APPROVED 案例): 切换为动态检索 Top-3
+│   │   └── 双轨制: 动态检索失败时 fallback 到静态模板
 │   ├── 术语表（军事/反无人机专用术语注入）
 │   ├── 反复迭代测试（用阶段 0 的测试用例）
 │   └── LLM 输出质量评估脚本
@@ -1300,12 +1574,32 @@ Week 5-6: 审核闭环
 │   ├── 指挥员确认/驳回按钮
 │   └── 驳回原因选择（快速选项 + 自由文本）
 │
-├── 规则回填机制
-│   ├── LLM 确认决策 → 自动摘要为规则草案
-│   ├── 写入 pending_rules 表
+├── 规则回填机制（★ 改进：战后异步批处理 + 量化升级标准 + 冲突检测）
+│   ├── 战后批处理任务（替代原实时 propose_new_rule Tool）:
+│   │   ├── 每次作战/演习后自动触发
+│   │   ├── 扫描所有 APPROVED 的 LLM 决策
+│   │   ├── 聚类相似场景 → 提炼为规则草案
+│   │   └── 合并重复/冲突草案 → 写入 pending_rules 表
+│   ├── 规则冲突自动检测（新增）:
+│   │   ├── 新规则写入前与现有 L2/L3 规则交叉验证
+│   │   ├── 发现矛盾 → 标记 CONFLICT_WARNING + 列出冲突规则
+│   │   └── 冲突未解决 → 规则状态保持 PENDING_REVIEW，不允许提升
+│   ├── 量化升级标准（新增）:
+│   │   ├── L4 → L3 升级条件（AND 关系）:
+│   │   │   ├── 规则在 ≥5 个不同场景中被匹配
+│   │   │   ├── 指挥员确认率 ≥80%
+│   │   │   ├── 与现有 L2/L3 规则无冲突
+│   │   │   └── 至少一条实弹/仿真验证通过记录
+│   │   ├── L3 → L2 升级条件：
+│   │   │   ├── 在 ≥20 个场景中验证，确认率 ≥95%
+│   │   │   └── 经领域专家委员会审核
+│   │   └── 自动降级条件：
+│   │       └── 任意规则的驳回率 >30% 时自动降一级
+│   ├── 规则效果追踪（新增）:
+│   │   └── rule_performance 表：记录每条规则的匹配次数/确认次数/驳回次数/最近一次匹配时间
 │   ├── 管理员审核界面（规则对比 + diff视图）
 │   ├── 审核通过 → 写入 L4 → 自动测试
-│   └── 多次验证 → 可提升至 L3
+│   └── 满足升级条件 → 自动触发提升审查
 │
 └── 规则版本管理
     ├── Git 管理所有 .drl 和 .json 规则文件
@@ -1326,11 +1620,21 @@ Week 6-7: 压力验证
 │   ├── FAISS 索引损坏 → 重建索引
 │   └── 网络中断 → 本地缓存恢复
 │
-└── 准确性验证（Phase 1: 离线数据回放）
+└── 准确性验证（Phase 1: 离线数据回放 + 阈值校准 + 驳回闭环）
     ├── 准备标注过的测试场景（领域专家标注的正确决策）
     ├── 对比：纯规则引擎 vs LLM Agent vs 混合架构
-    ├── 指标：Top-1准确率、Top-3准确率、平均置信度
-    └── 错误分析：按类型分类统计（规则缺陷/模型幻觉/知识缺失）
+    ├── 指标：Top-1准确率、Top-3准确率、平均置信度、ROE合规率
+    ├── ★ 置信度阈值校准实验（新增）:
+    │   ├── 绘制不同阈值 (0.60~0.95) 下的 Precision-Recall 曲线
+    │   ├── 找到 F1-Score 最优的截断点
+    │   ├── ROI 分析: LLM 调用次数 vs 准确率提升
+    │   └── 阈值作为可配置参数 `app.decision.confidence_threshold`，支持热更新
+    ├── ★ 驳回后自动重决策闭环（新增）:
+    │   ├── 指挥员驳回 → LLM 收到驳回原因 → 自动重新推理一轮
+    │   ├── 重新推理不消耗常规限流配额（走紧急通道）
+    │   ├── 修正方案重新进入 ROE 过滤 → 指挥员确认
+    │   └── 统计: 驳回重决策后的二次确认率
+    └── 错误分析：按类型分类统计（规则缺陷/模型幻觉/知识缺失/行为型号不一致漏检）
 ```
 
 ---
@@ -1392,9 +1696,11 @@ counteruav-decision-agent/
 │   │   │   ├── registry.py               # Tool 注册与调度
 │   │   │   ├── search_rules.py           # Tool 1: 规则检索
 │   │   │   ├── query_kb.py               # Tool 2: 知识库查询
-│   │   │   ├── run_topsis.py             # Tool 3: TOPSIS 计算
+│   │   │   ├── run_topsis.py             # Tool 3: TOPSIS 假设分析
 │   │   │   ├── check_devices.py          # Tool 4: 设备状态查询
-│   │   │   └── propose_rule.py           # Tool 5: 规则提议
+│   │   │   ├── predict_trajectory.py     # Tool 5: 轨迹预测 (新增)
+│   │   │   ├── simulate_action.py        # Tool 6: 行动效果预测 (新增)
+│   │   │   └── retrieve_cases.py         # Tool 7: 相似案例检索 (新增)
 │   │   ├── prompt_templates/
 │   │   │   ├── system_prompt.txt         # System Prompt 模板
 │   │   │   ├── few_shot_examples.json    # Few-shot 示例
@@ -1605,16 +1911,12 @@ Content-Type: application/json
           }
         },
         "avoid": ["laser_destruction"],
+        "risk_level": "L-可逆",
+        "auto_execute": true,
         "priority": 1,
         "timing": "immediate",
         "reasoning": "未知型号→无法确定最有效干扰频段→全频段压制保底。RF干扰覆盖所有常见频段，GNSS诱骗作为导航层第二道防线。避免激光摧毁因为目标类型不确定且非军事区。",
-        "escalation_condition": "若干扰后5秒内目标未偏航或继续逼近至300m内，立即升级至激光摧毁（需指挥员确认）"
-      },
-      "rule_proposal": {
-        "suggested": true,
-        "proposal_id": "prop-20260713-001",
-        "draft": "当未知型号目标径向速度>20m/s且高度<100m且触发≥2个威胁行为时，威胁等级直接设为5（极危），采用全频段压制+GNSS诱骗组合策略",
-        "reason": "基于本次推理发现：规则库对'未知型号+高速+低空+复合威胁行为'组合条件缺乏覆盖"
+        "escalation_condition": "若干扰后5秒内目标未偏航或继续逼近至300m内，立即升级至激光摧毁（需指挥员确认，risk_level: H-不可逆）"
       },
       "uncertainty_flags": [
         "UNKNOWN_DRONE_TYPE",
@@ -1684,7 +1986,36 @@ Content-Type: application/json
     "target_id": "T-073"
   },
   "situation": {
-    "...": "与决策请求相同的态势 JSON"
+    "...": "与决策请求相同的态势 JSON",
+    "precomputed": {
+      "topsis": {
+        "threat_score": 0.94,
+        "threat_level": 5,
+        "indicator_scores": {
+          "distance": 0.92, "speed": 0.95, "intent": 0.88,
+          "dwell_time": 0.30, "drone_type": 0.50
+        }
+      },
+      "matched_rules": [
+        {"rule_id": "L2-001", "name": "ThreatLevel_CriticalRange_HighSpeed", "layer": 2},
+        {"rule_id": "L2-010", "name": "ThreatEscalation_MultiBehavior", "layer": 2},
+        {"rule_id": "L3-unknown-001", "name": "未知型号默认最高威胁", "layer": 3}
+      ],
+      "rule_confidence": 0.62,
+      "confidence_breakdown": {
+        "rule_consistency": 0.80,
+        "sensor_quality": 0.28,
+        "class_confidence": 0.42,
+        "rule_coverage": 0.50,
+        "historical_accuracy": 0.50,
+        "behavior_type_consistency": 0.33
+      },
+      "conflicts": [],
+      "behavior_type_consistency_issues": [
+        "目标径向速度 22m/s 超过识别型号 'unknown' 无法校验",
+        "建议关注: 速度特征与消费级无人机不匹配"
+      ]
+    }
   },
   "task_description": "目标 T-073 规则引擎置信度 0.62，低于阈值。请对 T-073 进行深度威胁评估并推荐反制策略。"
 }
@@ -1818,15 +2149,16 @@ COMMENT='威胁评估历史快照，用于回放分析和模型优化';
 | # | 风险 | 影响 | 概率 | 对策 |
 |---|------|------|------|------|
 | 1 | **LLM 幻觉** — 给出逻辑通顺但事实错误的建议 | 指挥员误判，可能导致错误处置 | 中 | ①强制人工确认 ②输出必须引用规则/知识库来源 ③不确定性自动标注 ④低温度(0.1)推理 |
-| 2 | **LLM 推理超时** — 超过 10 秒未完成推理 | 错过处置窗口 | 中 | ①ReAct 上限 5 轮 ②10 秒硬超时降级 ③超时后使用规则引擎次优方案 |
-| 3 | **规则库初期稀疏** — 大量触发 LLM，频繁限流 | 决策延迟上升，可能遗漏威胁 | 高 | ①阶段 0 尽量生成足量规则(50-100条) ②限流器保证系统可用 ③严格 5 秒全局冷却 |
+| 2 | **LLM 推理超时** — 超过 10 秒未完成推理 | 错过处置窗口 | 低 | ①格式错误不消耗轮数 ②超时优先解析已有输出（不丢弃有效推理）③超时兜底采用保守策略（全频段压制，宁可过度反应） |
+| 3 | **规则库初期稀疏** — 大量触发 LLM，频繁限流 | 决策延迟上升，可能遗漏威胁 | 高 | ①阶段 0 尽量生成足量规则(50-100条) ②威胁等级感知限流器（高威胁优先）③紧急通道可打断冷却 |
 | 4 | **LLM 服务宕机** — Python 进程崩溃/模型加载失败 | LLM 决策通道不可用 | 低 | ①纯规则引擎独立运行，不受影响 ②健康检查 + 自动重启 ③降级标记自动附加 |
-| 5 | **规则冲突未检测** — 多条规则给出矛盾建议 | 低置信度但可能未被正确路由到 LLM | 低 | ①Drools 冲突检测器 ②ConfidenceCalculator 中的 ruleConsistency 维度 ③冲突自动触发 LLM |
-| 6 | **llama.cpp 在国产芯片上兼容性问题** | 无法部署 | 低 | ①预留 ONNX Runtime 备选方案 ②CPU 推理作为最终降级 ③阶段 1 早期先做硬件兼容性验证 |
-| 7 | **Qwen3 对军事/反无人机术语理解不足** | LLM 推理质量下降 | 中 | ①术语表注入 System Prompt ②10-15 个 Few-shot 示例覆盖常见场景 ③持续收集驳回案例微调模型 |
+| 5 | **规则冲突未检测** — 多条规则给出矛盾建议 | 低置信度但可能未被正确路由到 LLM | 低 | ①Drools 冲突检测器 ②ConfidenceCalculator 中的 ruleConsistency 维度 ③冲突自动触发 LLM ④规则写入前交叉验证现有规则 |
+| 6 | **llama.cpp 在国产芯片上兼容性问题** | 无法部署 | 低 | ①预留 ONNX Runtime 备选方案 ②CPU 推理作为最终降级 ③阶段 1 早期先做硬件兼容性验证 + 模型能力验证 |
+| 7 | **Qwen3 对军事/反无人机术语理解不足** | LLM 推理质量下降 | 中 | ①术语表注入 System Prompt ②15 个静态 + 动态检索 Few-shot ③持续收集驳回案例微调模型 ④模型验证关卡不通过则换 Qwen3-14B |
 | 8 | **知识库信息过时** — 新型号无人机不断出现 | EVT 开集识别率上升，LLM 调用增多 | 中 | ①定期情报更新流程 ②EVT 检测到的新型号自动归档 + 通知管理员 ③规则库持续增长覆盖 |
-| 9 | **冷启动无历史数据** — HistoricalAccuracy 维度无参考 | 置信度计算偏差 | 高(初期) | ①冷启动阶段该维度默认值 0.5（中性） ②随反馈积累逐步准确 ③降权（仅 10%）减少影响 |
-| 10 | **单一开发者瓶颈** — 所有模块依赖一人 | 进度风险，关键人力风险 | 中 | ①三阶段串行推进，优先保证核心可用 ②充分利用 Phase 0 云端 LLM 加速规则库建设 ③代码和设计文档完善，降低后续交接成本 |
+| 9 | **冷启动无历史数据** — HistoricalAccuracy 和行为-型号一致性维度无参考 | 置信度计算偏差 | 高(初期) | ①冷启动阶段该两维度权重降为 0，释放权重给规则一致性+传感器质量 ②随 feedback_log ≥100 条记录后自动切换完整六维权重 ③动态阈值的初始值使用校准实验确定 |
+| 10 | **识别模块自信犯错** — 型号识别错误且置信度高 | 决策链全程无 LLM 审核，错误策略直接执行 | 中(新增) | ①行为-型号一致性检查（置信度维度6）②不一致时强制触发 LLM ③传感器交叉验证（雷达 RCS vs 光电分类） |
+| 11 | **单一开发者瓶颈** — 所有模块依赖一人 | 进度风险，关键人力风险 | 中 | ①三阶段串行推进，优先保证核心可用 ②充分利用 Phase 0 云端 LLM 加速规则库建设 ③代码和设计文档完善，降低后续交接成本 |
 
 ---
 
@@ -1836,20 +2168,31 @@ COMMENT='威胁评估历史快照，用于回放分析和模型优化';
 
 | 问题 | 答案 |
 |------|------|
-| **选什么 Agent？** | **混合架构**：Drools 规则引擎（处理 80%+ 常规决策，<10ms）+ 自研 ReAct LLM Agent 搭载 Qwen3-8B（处理 20% 低置信度/异常案例，2-5s），通过置信度门控(0.80 阈值)自动路由 |
-| **如何建立规则库？** | **四层分层**：L1 物理定律(Java代码) → L2 作战条例(Drools .drl) → L3 战术策略(JSON) → L4 经验优化(LLM回填)。阶段 0 用云端 LLM 从文档挖掘 + 常识补全生成初始规则，人工审核标记置信度标签，后续通过 LLM 确认决策自动回填机制持续增长 |
-| **如何从零开始？** | **三阶段 6-9 周**：阶段 0（1-2周）规则冷启动 → 阶段 1（3-4周）规则引擎 + LLM Agent MVP → 阶段 2（2-3周）审核闭环 + 压力验证。总计 6-9 周可由单一开发者完成可运行系统 |
+| **选什么 Agent？** | **混合架构**：Drools 规则引擎（处理 80%+ 常规决策，<10ms）+ 自研 ReAct LLM Agent 搭载 Qwen3-8B（处理 20% 低置信度/异常案例，2-5s），通过六维置信度门控 + ROE 硬约束过滤 + 操作风险分级三重保障安全 |
+| **如何建立规则库？** | **四层分层**：L1 物理定律(Java代码) → L2 作战条例(Drools .drl) → L3 战术策略(JSON) → L4 经验优化(战后异步批处理)。阶段 0 用云端 LLM 从文档挖掘 + 常识补全生成初始规则，人工审核标记置信度标签。战后批处理→冲突检测→量化标准升级（≥5次匹配+≥80%确认率 L4→L3）形成闭环 |
+| **如何从零开始？** | **三阶段 7-10 周**：阶段 0（1-2周）规则冷启动 → 阶段 1（3-4周）规则引擎 + LLM Agent MVP（含模型验证关卡）→ 阶段 2（2-4周）审核闭环 + 阈值校准 + 压力验证。总计 7-10 周可由单一开发者完成可运行系统 |
 
 ### 关键设计决策回顾
 
 ```
-架构:  混合（规则引擎 + LLM）  ── 不是纯规则，不是纯LLM
-模型:  Qwen3-8B + llama.cpp  ── 离线、中文、CPU可跑
-框架:  自研 ReAct             ── 不依赖 LangGraph/CrewAI
-门控:  置信度 0.80 阈值       ── 5种触发条件，限流保护
-输出:  建议方案               ── 不直接下发武器，必须人工确认
-规则:  四层分层 + 自动回填     ── 从 LLM 生成起步，逐步验证固化
-实现:  三阶段串行              ── 唯一开发者，6-9周可运行
+架构:  混合（规则引擎 + LLM）     ── 不是纯规则，不是纯LLM
+模型:  Qwen3-8B + llama.cpp      ── 离线、中文、CPU可跑（含模型验证关卡）
+框架:  自研 ReAct (~600 行)       ── 不依赖 LangGraph/CrewAI
+                                 ── 改进: 格式错误不消耗轮数 + 超时优先解析已有输出
+门控:  置信度阈值（可配置+校准）   ── 六种触发条件，六维置信度计算
+                                 ── + 行为-型号一致性检查（防识别模块自信犯错）
+过滤:  ROE 硬约束过滤层 (新增)     ── LLM 输出不直接入队，经 Drools L2 二次校验
+                                 ── 违规建议自动拦截 + 降级
+执行:  操作风险分级 (新增)        ── 可逆操作自动执行，半可逆自动+可撤销，不可逆强制确认
+输出:  建议方案                   ── 不直接下发武器，ROE 硬约束保底
+规则:  四层分层 + 量化升级标准     ── 匹配≥5次+确认率≥80%+无冲突 L4→L3
+                                 ── 规则提议改为战后异步批处理（非实时 Tool）
+限流:  威胁等级感知 (改进)        ── 高威胁可打断冷却 + 紧急通道 + 随距离递减配额
+检索:  动态 Few-shot (新增)       ── 双轨制: 冷启动静态模板 + 热启动 FAISS 动态检索
+Tool:  6+1 个 (改进)             ── +predict_trajectory +simulate_action +retrieve_cases
+                                 ── -propose_new_rule (改为战后批处理)
+                                 ── run_topsis 改为可选假设分析（结果预注入）
+实现:  三阶段串行                  ── 唯一开发者，6-9周可运行
 ```
 
 ---

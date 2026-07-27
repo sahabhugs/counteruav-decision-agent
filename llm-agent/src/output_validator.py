@@ -87,10 +87,17 @@ class RecommendedActionOutput(BaseModel):
 
 
 class RuleProposalOutput(BaseModel):
-    """规则提案子结构"""
+    """规则提案子结构（可选，战后批处理生成）"""
     rule_text: str = Field(default="", description="提案规则文本")
     reason: str = Field(default="", description="提案原因")
     priority: str = Field(default="normal", description="建议优先级: low/normal/high/urgent")
+
+
+class OperationRiskLevel(str, Enum):
+    """操作风险等级"""
+    REVERSIBLE = "L-可逆"
+    SEMI_REVERSIBLE = "M-半可逆"
+    IRREVERSIBLE = "H-不可逆"
 
 
 class LLMDecisionOutput(BaseModel):
@@ -101,8 +108,10 @@ class LLMDecisionOutput(BaseModel):
     recommended_action: RecommendedActionOutput = Field(..., description="推荐动作")
     reasoning_chain: List[str] = Field(default_factory=list, description="推理链（步骤列表）")
     data_sources: List[str] = Field(default_factory=list, description="数据来源（工具调用记录）")
-    rule_proposal: Optional[RuleProposalOutput] = Field(default=None, description="规则提案（可选）")
+    risk_level: str = Field(default="M-半可逆", description="操作风险等级: L-可逆 | M-半可逆 | H-不可逆")
+    rule_proposal: Optional[RuleProposalOutput] = Field(default=None, description="规则提案（可选，战后批处理）")
     remarks: str = Field(default="", description="附注说明")
+    uncertainty_flags: List[str] = Field(default_factory=list, description="不确定性标记列表")
 
     @field_validator("reasoning_chain")
     @classmethod
@@ -147,7 +156,7 @@ class OutputValidator:
         return len(self._errors) == 0, self._errors
 
     def _validate_business_rules(self, decision: LLMDecisionOutput) -> None:
-        """执行额外的业务规则校验。"""
+        """执行额外的业务规则校验（含 ROE 硬约束）。"""
         ta = decision.threat_assessment
 
         # 置信度检查
@@ -169,11 +178,24 @@ class OutputValidator:
                 "存在不确定标记但置信度高于 0.9，逻辑矛盾"
             )
 
-        # 动作类型与威胁等级的合理性
+        # ROE 硬约束: 低威胁等级禁止硬杀伤
         ra = decision.recommended_action
-        if ta.threat_level <= 1 and ra.action_type in ("激光摧毁", "微波毁伤", "硬杀伤"):
+        irreversible_actions = ("激光摧毁", "微波毁伤", "硬杀伤", "kinetic_impact",
+                               "laser_destruction", "high_power_microwave")
+        if ta.threat_level <= 1 and ra.action_type in irreversible_actions:
             self._errors.append(
-                f"低威胁等级下不建议使用硬杀伤手段: {ra.action_type}"
+                f"ROE 硬约束: 威胁等级≤1 禁止使用不可逆杀伤手段，当前: {ra.action_type}"
+            )
+
+        # ROE 硬约束: 民用区域 + 威胁<5 禁止硬杀伤
+        # 从 uncertainty_flags 或 remarks 推断是否涉及平民区域
+        civilian_indicators = ("平民区临近", "平民", "civilian", "CIVILIAN_AREA")
+        has_civilian_flag = any(
+            ind in str(ta.uncertainty_flags) for ind in civilian_indicators
+        )
+        if has_civilian_flag and ta.threat_level < 5 and ra.action_type in irreversible_actions:
+            self._errors.append(
+                f"ROE 硬约束: 平民区域 + 威胁等级<5 禁止硬杀伤，当前: {ra.action_type}"
             )
 
         # 数据来源不为空

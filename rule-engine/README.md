@@ -67,9 +67,7 @@ python mvn.py run
 ### 4. 测试 API
 
 ```bash
-curl -X POST http://localhost:8080/api/decision/assess \
-  -H "Content-Type: application/json" \
-  -d @test_request.json
+curl -X POST http://localhost:8080/api/decision/assess -H "Content-Type: application/json" -d @test_request.json
 ```
 
 ---

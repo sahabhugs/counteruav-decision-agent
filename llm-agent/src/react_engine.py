@@ -117,14 +117,15 @@ class ReActEngine:
         # 将态势信息注入 context（供工具调用）
         tool_context = {"_situation": situation}
 
-        round_num = 0
+        round_num = 0       # 有效推理轮数
+        retry_count = 0     # Schema 校验失败重试计数
+        MAX_RETRIES = 2     # 最多额外重试 2 次（不消耗有效轮数）
         final_decision: Optional[dict] = None
 
         while round_num < self.cfg.MAX_ROUNDS:
             elapsed = time.monotonic() - start_time
             if elapsed >= self.cfg.TIMEOUT_SECONDS:
                 logger.warning(f"推理超时 ({elapsed:.2f}s > {self.cfg.TIMEOUT_SECONDS}s)")
-                # 尝试从已有消息提取决策
                 partial = self._extract_partial_decision(messages, task_id, target_id)
                 if partial:
                     return partial
@@ -133,62 +134,64 @@ class ReActEngine:
             round_num += 1
             logger.info(f"--- ReAct 第 {round_num}/{self.cfg.MAX_ROUNDS} 轮 ---")
 
-            # 调用 LLM
             response_text = self._call_llm(messages)
             if not response_text:
                 logger.error("LLM 返回空响应")
-                # 发送重试提示
                 messages.append({
                     "role": "user",
                     "content": "上一条响应为空，请重新输出你的分析和行动。如果需要最终结论，请以 Final: 开头输出完整 JSON。",
                 })
                 continue
 
-            # 添加到消息历史
             messages.append({"role": "assistant", "content": response_text})
 
-            # 解析 LLM 输出
-            if round_num < self.cfg.MAX_ROUNDS:
-                # 尝试解析 Action
-                action = self._parse_action(response_text)
-                if action:
-                    tool_name = action["tool"]
-                    tool_args = action.get("args", {})
-                    # 合并 tool context
-                    tool_args.update(tool_context)
+            # 解析 Action
+            action = self._parse_action(response_text)
+            if action:
+                tool_name = action["tool"]
+                tool_args = action.get("args", {})
+                tool_args.update(tool_context)
+                exec_result = self.tools_registry.execute(tool_name, tool_args)
+                observation = self._format_observation(tool_name, exec_result)
+                messages.append({"role": "user", "content": observation})
+                retry_count = 0  # 重置重试计数
+                logger.info(f"工具 {tool_name} 执行完成，继续推理")
+                continue
 
-                    # 执行工具并获取结果
-                    exec_result = self.tools_registry.execute(tool_name, tool_args)
-
-                    # 格式化观察结果
-                    observation = self._format_observation(tool_name, exec_result)
-                    messages.append({"role": "user", "content": observation})
-                    logger.info(f"工具 {tool_name} 执行完成，继续推理")
-                    continue
-
-            # 尝试解析 Final 答案
+            # 解析 Final 答案
             final = self._parse_final(response_text)
             if final:
-                # 在校验前补充缺失字段
                 final = self._ensure_fields(final, task_id, target_id)
                 valid, errors = self.validator.validate(final)
                 if valid:
+                    # 即使超时，已有有效结果也优先返回
+                    if time.monotonic() - start_time >= self.cfg.TIMEOUT_SECONDS:
+                        final["uncertainty_flags"] = final.get("uncertainty_flags", [])
+                        if "RESULT_AFTER_TIMEOUT" not in final["uncertainty_flags"]:
+                            final["uncertainty_flags"].append("RESULT_AFTER_TIMEOUT")
                     final_decision = final
                     logger.info(f"ReAct 引擎获得有效最终决策 (第{round_num}轮)")
                     break
                 else:
-                    logger.warning(f"最终决策校验失败 ({len(errors)} 个错误): {errors}")
-                    # 将校验错误反馈给 LLM
+                    # Schema 校验失败 → 不消耗有效轮数，消耗重试配额
+                    retry_count += 1
+                    if retry_count > MAX_RETRIES:
+                        logger.warning(f"Schema 校验重试耗尽 ({MAX_RETRIES}次)，返回降级决策")
+                        return self._generate_schema_failure_decision(
+                            final, task_id, target_id
+                        )
+                    logger.warning(f"最终决策校验失败 ({len(errors)} 个错误)，重试 {retry_count}/{MAX_RETRIES}")
+                    round_num -= 1  # 不消耗有效轮数
                     error_feedback = (
                         f"上一轮输出的决策 JSON 校验失败，请修正以下问题并重新输出：\n"
                         + "\n".join(f"- {e}" for e in errors)
-                        + "\n\n请以 Final: 开头输出修正后的完整 JSON。"
+                        + f"\n\n (重试 {retry_count}/{MAX_RETRIES}) 请以 Final: 开头输出修正后的完整 JSON。"
                     )
                     messages.append({"role": "user", "content": error_feedback})
                     continue
 
-            # 未解析到 Action 或 Final，LLM 输出的是中间推理
-            # 提示 LLM 继续
+            # 未解析到 Action 或 Final → 提示继续
+            retry_count = 0
             if round_num < self.cfg.MAX_ROUNDS:
                 messages.append({
                     "role": "user",
@@ -234,6 +237,24 @@ class ReActEngine:
         # 注入当前态势摘要
         situation_text = self._format_situation(situation)
         prompt += f"\n\n# 当前态势摘要\n{situation_text}"
+
+        # 注入上报上下文（来自规则引擎的触发原因）
+        escalation_reason = situation.get("_escalation_trigger_reason", "")
+        escalation_detail = situation.get("_escalation_trigger_detail", "")
+        rule_engine_threat = situation.get("rule_engine_threat_level", 0)
+        if escalation_reason or escalation_detail:
+            prompt += "\n\n# ⚠ 规则引擎上报上下文（置信度不足）\n"
+            prompt += "你被调用是因为规则引擎在当前态势下的威胁评估置信度不足。\n"
+            prompt += "请在推理中重点关注：\n"
+            prompt += "1. 补充规则引擎可能遗漏的关键威胁因素\n"
+            prompt += "2. 利用可用工具获取更多信息以提高评估可靠性\n"
+            prompt += "3. 明确标注不确定性来源和影响范围\n"
+            if escalation_reason:
+                prompt += f"\n**触发原因**: {escalation_reason}\n"
+            if escalation_detail:
+                prompt += f"**详细描述**: {escalation_detail}\n"
+            if rule_engine_threat > 0:
+                prompt += f"**规则引擎初步威胁等级**: {rule_engine_threat}/5\n"
 
         # 注入 Few-shot 示例
         if self._few_shot_examples:
@@ -537,14 +558,14 @@ class ReActEngine:
     # ==================== 边界处理 ====================
 
     def _generate_timeout_decision(self, task_id: str, target_id: str) -> dict:
-        """生成超时时的保守决策。
+        """生成超时时的保守决策 — 优先尝试解析已有输出。
 
         Args:
             task_id: 任务 ID。
             target_id: 目标 ID。
 
         Returns:
-            保守决策字典（威胁等级 5，全频段压制）。
+            保守决策字典。
         """
         logger.warning("生成超时保护决策（威胁等级 5，全频段压制）")
         decision = json.loads(json.dumps(_TIMEOUT_DECISION_TEMPLATE))
@@ -555,6 +576,56 @@ class ReActEngine:
             "置信度极低（0.30），强烈建议指挥员人工复核并确认后方可执行。"
         )
         return decision
+
+    def _generate_schema_failure_decision(
+        self, last_attempt: dict, task_id: str, target_id: str
+    ) -> dict:
+        """Schema 校验多次失败后的降级 — 保留已解析的部分信息。
+
+        Args:
+            last_attempt: 最后一次解析尝试（可能不完整）。
+            task_id: 任务 ID。
+            target_id: 目标 ID。
+
+        Returns:
+            降级决策字典。
+        """
+        logger.warning(f"Schema 校验重试耗尽，生成降级决策: task_id={task_id}")
+        # 尝试保留 LLM 已解析的部分信息
+        ta = last_attempt.get("threat_assessment", {})
+        ra = last_attempt.get("recommended_action", {})
+
+        return {
+            "decision_id": task_id,
+            "target_id": target_id or last_attempt.get("target_id", "UNKNOWN"),
+            "threat_assessment": {
+                "threat_score": ta.get("threat_score", 0.85),
+                "threat_level": ta.get("threat_level", 5),
+                "confidence": ta.get("confidence", 0.0),
+                "key_factors": ta.get("key_factors", ["Schema校验失败"]),
+                "uncertainty_flags": (
+                    ta.get("uncertainty_flags", []) + ["SCHEMA_FAILURE", "DEGRADED_TO_RULE_ENGINE"]
+                ),
+            },
+            "recommended_action": {
+                "action_type": ra.get("action_type", "全频段压制"),
+                "priority": ra.get("priority", 1),
+                "devices": ra.get("devices", []),
+                "parameters": ra.get("parameters", {}),
+                "expected_effect": ra.get("expected_effect", "Schema 校验失败，降级使用保守方案"),
+                "alternative_actions": ra.get("alternative_actions", []),
+            },
+            "reasoning_chain": last_attempt.get("reasoning_chain", []) + [
+                f"LLM Schema 校验重试耗尽，部分信息保留，降级处理"
+            ],
+            "data_sources": last_attempt.get("data_sources", []),
+            "rule_proposal": None,
+            "remarks": (
+                f"【警告】LLM 输出 {self.cfg.MAX_ROUNDS}+2 次 Schema 校验均失败。"
+                "已尽量保留 LLM 推理结果中的部分信息。强烈建议指挥员人工决策。"
+            ),
+            "uncertainty_flags": ["SCHEMA_FAILURE", "DEGRADED_TO_RULE_ENGINE"],
+        }
 
     def _generate_max_rounds_decision(self, messages: list[dict], task_id: str, target_id: str) -> dict:
         """达到最大轮次时强制 LLM 生成最终决策。
